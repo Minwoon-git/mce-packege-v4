@@ -1,51 +1,41 @@
 ---
 name: reference-customer-profile-fields
-description: Customer_Profile DE(key CD_Customer_Profile_DE, id d64d8979-346d-f111-a5e1-5cba2c19fe48) 전체 필드 목록 및 캠페인 신호 컬럼 확인 결과
+description: 현재 계정 DE 현황 — Customer_Profile(CD_Customer_Profile_DE) 없음. 실제 존재하는 캠페인용 DE 6개(무신사 기반) 필드 정리. 2026-06-21 기준.
 metadata:
   type: reference
 ---
 
-## DE 기본 정보
+## 중요: Customer_Profile DE 부재 확인 (2026-06-21)
 
-- 이름: Customer_Profile
-- Key: CD_Customer_Profile_DE
-- ID: d64d8979-346d-f111-a5e1-5cba2c19fe48
-- categoryId: 93869 (Customer Data 폴더)
-- rowCount: 100
-- fieldCount: 33
-- sendableField: member_id → _SubscriberKey
+- `Customer_Profile` (key: `CD_Customer_Profile_DE`, id: `d64d8979-...`) 은 현재 계정에 존재하지 않음.
+- REST API 검색(`/data/v1/customobjects?$search=Customer_Profile` 등) 및 폴더(93869) 조회 모두 0건.
+- 이전 메모리의 ID는 stale — 해당 DE가 삭제되었거나 다른 BU에 있을 가능성.
 
-## 캠페인 신호 컬럼 (Boolean)
+## 실제 존재하는 캠페인용 DE (루트 폴더 82564, Jinny 작성, 무신사 기반)
 
-| 컬럼명 | 타입 | 캠페인 신호 |
+| DE명 | ID | Key | 주요 필드 | 용도 |
+|---|---|---|---|---|
+| DE_Master_Member_Musinsa | ed219863-... | C0862E30-... | ContactKey, Email, Phone, Marketing_Opt_In, Name | 회원 마스터·동의 |
+| DE_Cart_Event | c0229863-... | 3E0D3510-... | ContactKey, Product_ID, Cart_Flag, Cart_Date | 장바구니 이탈 |
+| DE_Product_View_7d | ec219863-... | B25FC3F0-... | ContactKey, Product_ID, View_Count_7d, Last_View_Date, Email, Discount_Rate, Price, Purchase_Date, Marketing_Opt_In, Phone | 상품 조회 행동·고관여 |
+| DE_Purchase_Status | ee219863-... | 80ACBCBB-... | ContactKey, Product_ID, Purchase_Date | 구매 이력 |
+| DE_Login_Event | 06229863-... | 08FF0BF9-... | ContactKey, Last_Login_Date, Login_Count_30d | 로그인 이력·휴면 판단 |
+| DE_Product_Discount | eb219863-... | 8ED344BB-... | Product_ID, Discount_Rate, Discount_Start_Date, Price, ContactKey | 상품 할인 정보 |
+
+## DataCloud 폴더(90248) DE
+
+| DE명 | ID | 주요 필드 | 비고 |
+|---|---|---|---|
+| AllContact_260415 | ba90ebf6-... | Contactkey (5개 필드, 13000행) | 전체 연락처 |
+| PurchaseData_260415 | 694a615b-... | Contactkey (5개 필드, 13000행) | 구매 데이터 |
+
+## 캠페인 신호 매핑 (실제 DE 기반)
+
+| 신호 | 근거 DE·필드 | 캠페인 |
 |---|---|---|
-| is_birthday_today | Boolean | 생일 |
-| is_new_member | Boolean | 신규회원 |
-| is_dormant | Boolean | 휴면 |
-| is_churn_risk | Boolean | 이탈 위험 |
-| has_abandoned_cart | Boolean | 장바구니 이탈 |
-| has_expiring_coupon | Boolean | 쿠폰 만료 임박 |
-| has_expiring_points | Boolean | 포인트 만료 임박 |
-| birthday_coupon_unused | Boolean | 생일쿠폰 미사용 |
-
-## 분기/세분화 컬럼
-
-| 컬럼명 | 타입 | 용도 |
-|---|---|---|
-| grade | Text | VIP·등급 분기 |
-| preferred_category | Text | 취향/카테고리 개인화 |
-| region | Text | 지역 타겟팅 |
-| days_since_last_order | Number | 이탈 기간 분기 |
-| total_spent | Decimal | 구매금액 분기 |
-| cart_total_amount | Decimal | 장바구니 금액 분기 |
-| days_since_signup | Number | 가입 후 경과일 분기 |
-| points_balance | Number | 포인트 잔액 분기 |
-| unused_coupon_count | Number | 미사용 쿠폰 수 |
-| member_type | Text | 회원 유형 |
-| sms_consent | Boolean | SMS 동의 여부 |
-| email_consent | Boolean | 이메일 동의 여부 |
-
-## 기타 기본 컬럼
-
-member_id, email, name, cellphone, sex, birthday, age, signup_date, last_login_date,
-days_since_last_login, last_order_date, order_count, SubscriberKey
+| 장바구니 이탈 | DE_Cart_Event.Cart_Flag / Cart_Date | 장바구니 이탈 재타겟 |
+| 휴면/비활성 | DE_Login_Event.Last_Login_Date + Login_Count_30d | 휴면 재활성화 |
+| 고관여 미구매 | DE_Product_View_7d.View_Count_7d (구매 없음) | 관심상품 구매 유도 |
+| 할인 상품 알림 | DE_Product_Discount.Discount_Rate + DE_Product_View_7d 조인 | 가격 인하 알림 |
+| 구매 후 리텐션 | DE_Purchase_Status.Purchase_Date | 재구매 유도 |
+| 마케팅 동의자 | DE_Master_Member_Musinsa.Marketing_Opt_In = 'Y' | 일반 마케팅 발송 |

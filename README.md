@@ -179,6 +179,33 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 ---
 
+## 초기 세팅 점검 에이전트 (온보딩)
+
+"세팅 점검해줘", "발송 준비됐어?", "남은 세팅 뭐야" 같은 요청에 대해, **`mce-onboarding` 스킬**을 로드하고 **`mce-onboarding-agent` 워커**에 위임하여, 이 계정으로 MCE를 **운영(발송)할 수 있는 상태인지**를 진단합니다.
+
+- **읽기 전용 진단 + 가이드**입니다. 계정 설정을 자동으로 변경하지 않습니다.
+- IP 워밍·도메인 인증·물리 주소처럼 API로 점검 불가한 항목은 `❌ 확인 필요`로 **표시만** 하고, 권장 일정은 **텍스트 플랜으로만** 제시합니다(리마인더 등록 안 함).
+
+**점검 카테고리 (A / C / D):**
+
+| 카테고리 | 점검 내용 | 방식 |
+|---|---|---|
+| **A. 접속/연동 기반** | API 연동(Installed Package), Business Unit, 사용자/권한, 기능 프로비저닝(Email/Journey/Automation/Contact Builder) | 🟢 API 확인 · 🟡 응답 추론 · 🔵 Setup 수동 |
+| **C. 발송 인증/평판** | 도메인 인증(SAP/SPF·DKIM·DMARC), 전용 IP·IP 워밍, Reply Mail Management, CAN-SPAM 물리 주소, 트래킹 도메인 | 🔵 Setup 수동(표시만) |
+| **D. 발송 구성** | Sender Profile, Send Classification(Marketing/Operational), Delivery Profile, 구독/프로필 센터 | 🟢 API 확인 |
+
+> 데이터/대상(진입 DE·데이터 적재·구독 리스트)은 온보딩 점검 범위 밖이며, 캠페인 흐름(`mce-topic-agent` STEP 1)이 담당합니다. 온보딩은 "데이터 모델을 쓸 수 있는가"(카테고리 A 추론)까지만 봅니다.
+>
+> 점검 항목·판정 기준·IP 워밍 램프 템플릿의 단일 출처(SSOT)는 [`.claude/skills/mce-onboarding/`](.claude/skills/mce-onboarding/) 입니다.
+
+```
+세팅 점검해줘                  # A/C/D 점검 → ✅/⚠️/❌ 리포트 + 잔여 태스크
+발송 준비됐어?                 # 운영 발송 전 필수 항목(도메인 인증·물리 주소·구독센터) 확인
+IP 워밍 일정 알려줘            # 전용 IP 신규 시 4주 램프 텍스트 플랜
+```
+
+---
+
 ## 사전 준비 — 의존성 설치
 
 정의서(xlsx) 생성 스크립트(`generate_campaign_definition.js`)는 `exceljs` 패키지를 사용합니다.
@@ -589,7 +616,11 @@ mce-package-main/
     ├── agents/                        # 하위 워커 (현재 활성 — 상위가 Agent 도구로 호출)
     │   ├── mce-topic-agent.md         # STEP 1 주제 선정 워커
     │   ├── mce-planning-agent.md      # STEP 2 기획 / 정의서 생성 워커
-    │   └── mce-journey-agent.md       # STEP 3 Journey 생성 워커
+    │   ├── mce-journey-agent.md       # STEP 3 Journey 생성 워커
+    │   └── mce-onboarding-agent.md    # (온보딩) 초기 세팅 점검 워커
+    ├── skills/
+    │   ├── mce-campaign/              # 캠페인 생성 스킬 (STEP 1~4 + reference/)
+    │   └── mce-onboarding/            # 초기 세팅 점검 스킬 (체크리스트 + IP 워밍 템플릿)
     └── _backup_single_agent_20260621/ # 전환 전 단일 에이전트 버전 백업 (롤백용)
 ```
 

@@ -36,6 +36,21 @@
 
 ---
 
+## ⭐ 라우팅 — 초기 세팅 점검은 `mce-onboarding` 스킬로
+
+아래 의도가 감지되면 **`mce-onboarding` 스킬을 로드**하여 그 절차를 따른다. 점검 실작업은 `mce-onboarding-agent` 워커에 위임한다.
+
+**트리거 (하나라도 해당되면 `mce-onboarding` 로드):**
+- 초기 세팅/온보딩 점검 — "세팅 점검", "온보딩 점검", "초기 설정 확인", "발송 준비됐어?", "남은 세팅 뭐야"
+- 발송 인프라 진단 — Sender Profile·Send Classification·도메인 인증·전용 IP·IP 워밍 일정 관련 질문
+
+이 스킬은 **읽기 전용 진단 + 가이드**다. 계정 설정을 변경하지 않으며, IP 워밍·도메인 인증·물리 주소는 `❌ 확인 필요`로 **표시만** 하고 권장 일정을 **텍스트 플랜으로만** 제시한다(리마인더 등록 안 함).
+
+스킬 본문: [`.claude/skills/mce-onboarding/SKILL.md`](.claude/skills/mce-onboarding/SKILL.md)
+참조 데이터: `.claude/skills/mce-onboarding/reference/` (점검 체크리스트·IP 워밍 램프 템플릿)
+
+---
+
 ## 🧭 오케스트레이션 흐름 — 상위 에이전트가 하위 워커에 위임
 
 상위 에이전트(이 메인 루프)는 `mce-campaign` 스킬을 로드한 뒤, 아래 순서로 **하위 에이전트를 `Agent` 도구로 호출**한다.
@@ -133,6 +148,7 @@
 | [`mce-topic-agent`](.claude/agents/mce-topic-agent.md) | STEP 1 | DE/폴더 분석 → 캠페인 후보 추천 | 사용자 의도 한 문장 | 캠페인 후보 목록(또는 DE 목록) |
 | [`mce-planning-agent`](.claude/agents/mce-planning-agent.md) | STEP 2 | Plan 설계 + xlsx 정의서 생성 | 선택 캠페인·DE/필드·실행 모드·(수동 시)확정 Plan 값 | 정의서 파일 경로 + Plan 요약 |
 | [`mce-journey-agent`](.claude/agents/mce-journey-agent.md) | STEP 3 | 정의서 → SFMC Journey 생성(기본 Draft) | 정의서 경로/캠페인 ID·발행 여부 | Journey 이름·ID·상태·링크 |
+| [`mce-onboarding-agent`](.claude/agents/mce-onboarding-agent.md) | (온보딩) | 발송 인프라 read-only 점검 → 세팅 상태 분류 + 잔여 태스크·일정 가이드 | 점검 요청 | 세팅 점검 리포트(✅/⚠️/❌) + 워밍 일정 플랜 |
 
 > 세 워커 모두 상세 절차·검증 페이로드는 `mce-campaign` 스킬의 `reference/` 파일을 SSOT로 따른다.
 > 단일 에이전트 버전으로 되돌리려면 `.claude/_backup_single_agent_20260621/` 의 백업본을 복원한다.
