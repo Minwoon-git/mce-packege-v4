@@ -1,0 +1,14 @@
+{
+  "name": "mce-slack-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Slack <-> 로컬 Claude Code 브릿지 (MCE 캠페인 워크플로우)",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.7.3",
+    "dotenv": "^16.4.5"
+  }
+}

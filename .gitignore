@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.log
+
+# Claude Code 로컬 전용 권한 파일 (PC마다 다름 — 추적 안 함)
+.claude/settings.local.json
+
+# Slack 브릿지 로컬 상태 (세션 매핑·인사 여부 — 실행/PC마다 다름)
+slack-bridge/.bridge-state.json
+
+# MCP 서버 엔드포인트 (테넌트별 URL — PC/계정마다 다름, 추적 안 함)
+.mcp.json
