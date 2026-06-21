@@ -156,16 +156,16 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 - 갈래 A(리스트업)면 주요 신호 전체의 규모를 집계해 "지금 만들 수 있는 캠페인"을 규모순으로 제시한다.
 - 갈래 B(의도 포함)면 해당 의도 신호 위주로 집계하고 복잡도 변형까지 후보로 만든다.
 
-## 1-2. 캠페인 신호 매칭
+## 1-2. 캠페인 신호 매칭 (원천 컬럼 기준)
 
-`reference/de-and-folders.md`의 **신호 컬럼 → 추천 캠페인 매핑표**를 기준으로, Customer_Profile의 신호 컬럼 값으로 부합 캠페인을 식별한다.
-- 생일(`is_birthday_today`), 신규(`is_new_member`), 이탈/휴면(`is_dormant`/`is_churn_risk`), 장바구니(`has_abandoned_cart`), 쿠폰만료(`has_expiring_coupon`), 포인트만료(`has_expiring_points`), VIP(`grade`), 취향(`preferred_category`), 지역(`region`) 등.
+`reference/de-and-folders.md`의 **원천 컬럼 → 추천 캠페인 + 판정 계산식 표**를 기준으로, Customer_Profile에 그 **원천 컬럼이 있는지**로 부합 캠페인을 식별한다. (신호는 Boolean 플래그가 아니라 원천 날짜·수치 컬럼이며, 대상 판정 계산식은 1-6에서 SQL로 평가한다.)
+- 생일(`birthday`), 신규(`signup_date`), 휴면(`last_login_date`), 이탈위험(`last_order_date`), 장바구니(`has_abandoned_cart`/`cart_total_amount`), 쿠폰만료(`coupon_expire_date`/`unused_coupon_count`), 포인트만료(`points_expire_date`/`points_balance`), VIP(`grade`), 취향(`preferred_category`), 지역(`region`) 등.
 - ⚠️ 발송 동의 반영: 이메일 캠페인은 `email_consent=true`, SMS/알림톡은 `sms_consent=true`인 고객만 대상으로 규모를 집계한다.
 
 ## 1-3. 세그먼트 규모·분기 가능성 분석
 
 - 각 후보 캠페인의 **대상 고객 수**를 집계해 추천 표에 표기한다(데이터 근거).
-- 분기·세분화에 쓸 컬럼(`grade`, `days_since_last_order`, `total_spent`, `preferred_category`, `cart_total_amount` 등)으로 복잡도(단순/중간/복합) 변형이 가능한지 판단한다.
+- 분기·세분화에 쓸 컬럼(`grade`, `last_order_date`, `total_spent`, `order_count`, `preferred_category`, `cart_total_amount` 등)으로 복잡도(단순/중간/복합) 변형이 가능한지 판단한다.
 - 규모가 0인 신호는 후보에서 제외하거나 "(현재 대상 0명)"으로 명시한다.
 
 ## 1-4. 캠페인 후보 추천
@@ -183,12 +183,12 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 ```
 고객 데이터(Customer_Profile) 기반으로 만들 수 있는 캠페인입니다.
 
-1. 생일 쿠폰          (is_birthday_today)
+1. 생일 쿠폰          (birthday)
 2. 장바구니 이탈       (has_abandoned_cart)
-3. 이탈/휴면 재활성화   (is_dormant / is_churn_risk)
-4. 신규 회원 온보딩     (is_new_member)
-5. 쿠폰 만료 리마인더   (has_expiring_coupon)
-6. 포인트 만료 알림     (has_expiring_points)
+3. 이탈/휴면 재활성화   (last_login_date / last_order_date)
+4. 신규 회원 온보딩     (signup_date)
+5. 쿠폰 만료 리마인더   (coupon_expire_date)
+6. 포인트 만료 알림     (points_expire_date)
 7. VIP 우대           (grade)
 8. 등급/취향/지역 분기  (grade / preferred_category / region)
 
@@ -216,9 +216,9 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 
 | 번호 | 캠페인명 | 활용 신호(컬럼) | 추천 Journey 유형 | 복잡도 | 한 줄 설명 |
 |---|---|---|---|---|---|
-| 1 | 신규회원 웰컴 이메일 | is_new_member, email_consent | Email → Wait & Exit | 단순 | 가입 직후 웰컴 메시지 1회 발송 |
-| 2 | 신규회원 온보딩 시리즈 | is_new_member | Email → Wait → Engagement Split | 중간 | 가입 후 열람 여부에 따라 후속 안내 차등 발송 |
-| 3 | 신규회원 등급별 온보딩 | grade, is_new_member | Decision Split → Email → Wait → Engagement Split | 복합 | 등급 분기 후 열람 반응까지 반영한 다단계 안내 |
+| 1 | 신규회원 웰컴 이메일 | signup_date, email_consent | Email → Wait & Exit | 단순 | 가입 직후 웰컴 메시지 1회 발송 |
+| 2 | 신규회원 온보딩 시리즈 | signup_date | Email → Wait → Engagement Split | 중간 | 가입 후 열람 여부에 따라 후속 안내 차등 발송 |
+| 3 | 신규회원 등급별 온보딩 | grade, signup_date | Decision Split → Email → Wait → Engagement Split | 복합 | 등급 분기 후 열람 반응까지 반영한 다단계 안내 |
 
 각 후보는 **실제 Customer_Profile에 존재하는 컬럼에 근거**해야 한다. 없는 신호를 지어내지 않는다.
 필요한 분기 신호가 Profile에 없으면 그 사실을 명시하고 대안을 제시한다.
@@ -244,7 +244,7 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 캠페인이 **선택되면**, 그제서야 대상자를 집계하고 진입 DE를 만든다. (목록 단계에서는 안 함)
 
 1. **대상자 집계** — 선택된 캠페인의 신호 조건으로 `Customer_Profile`을 필터해 대상 고객 수를 집계한다.
-   - 예: 생일 캠페인 → `WHERE is_birthday_today = 1 AND email_consent = 1` → "대상 N명". (Boolean은 `= 1`·`= 'True'` 둘 다 동작)
+   - 예: 생일 캠페인 → `WHERE MONTH(birthday)=MONTH(GETDATE()) AND DAY(birthday)=DAY(GETDATE()) AND email_consent = 'True'` → "대상 N명". (휴면=`DATEDIFF(day, last_login_date, GETDATE()) >= 90` 등 신호는 원천 컬럼으로 계산. Boolean은 `= 'True'`·`= 1` 둘 다 동작)
    - ⚠️ **SQL Query 실행은 비동기다 — `run` 후 1~2분 기다린 뒤** `sfmc_get_data_extension` `rowCount`로 확인한다. 성급히 0을 보고 오판하지 말 것.
    - 동의 필터(이메일=`email_consent`, SMS/알림톡=`sms_consent`)를 반드시 포함한다.
 2. **Automation SQL Query로 진입 DE 생성/채움** — `Customer_Profile`을 필터한 결과를 캠페인별 **진입 DE**(`Campaign_Package` 하위, 예: `BIRTHDAY_ENTRY_DE`)에 적재한다.

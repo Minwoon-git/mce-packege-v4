@@ -168,7 +168,7 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 **동작 원칙**
 - **결과만 전달**: 진행 과정·중간 작업 설명을 출력하지 않고, 단계 전환 질문·최종 결과·오류만 사용자에게 노출합니다. **자동 모드에서도 동일**하며, STEP 1~4를 무발화로 일괄 실행한 뒤 마지막 실행 결과만 보여줍니다.
-- **오류 자기 학습**: 캠페인 생성 중 오류가 발생해 수정/우회하면, 그 원인·해결책을 CLAUDE.md의 `오류 학습 / 알려진 이슈` 표에 즉시 추가하여 다음 캠페인 생성 시 같은 오류를 반복하지 않습니다.
+- **오류 자기 학습**: 캠페인 생성 중 오류가 발생해 수정/우회하면, 그 원인·해결책을 `.claude/skills/mce-campaign/reference/error-log.md`의 오류 학습 표에 즉시 추가하여 다음 캠페인 생성 시 같은 오류를 반복하지 않습니다.
 
 **공통 기능:**
 - 연결된 DE/필드 분석 기반 캠페인 추천
@@ -388,7 +388,7 @@ npm install exceljs
 
 ### 통합 캠페인 에이전트 (권장)
 
-캠페인 의도를 **한 문장**으로 입력하면 메인 루프가 STEP 1~4를 직접 수행합니다.
+캠페인 의도를 **한 문장**으로 입력하면 상위 에이전트(오케스트레이터)가 STEP별 워커(topic/planning/journey)에 위임해 STEP 1~4를 수행합니다.
 (주제 선정 → 후보 추천 → 모드 선택 → 정의서 생성 → Journey 생성 → 결과 보고)
 
 ```
@@ -478,14 +478,15 @@ Engagement Split(오픈/클릭 기반)은 **반드시 선행 Email 액티비티�
 
 ### 작업 BU / 연결
 
-- 현재 `sf-mce-mcp` MCP는 BU **`Salesforce_milvus_edu`**(endpoint `mc82m0sycp8ynx4fqynw-63lx470`)에 연결되어 있고, **이 BU에 micrm 알림톡 커스텀 액티비티가 설치돼 있음** → BU 이동·MCP 재등록 없이 **현재 연결 그대로 작업 가능**.
+- (2026-06-21 기준) `sf-mce-mcp` MCP가 BU **`Salesforce_milvus_edu`**(endpoint `mc82m0sycp8ynx4fqynw-63lx470`)에 연결되어 있었고, **그 BU에 micrm 알림톡 커스텀 액티비티가 설치돼 있었음**.
+  - ⚠️ **연결 BU는 발급 엔드포인트·재인증에 따라 바뀝니다(1 연결 = 1 BU 고정).** 위 BU명·endpoint는 작성 당시 값일 뿐이니, **작업 전 현재 연결된 BU를 조회(예: DE 검색)로 반드시 확인**하세요. 커스텀 액티비티 키도 BU마다 다를 수 있습니다.
 - 다른 BU에서 봇을 쓰려면 그 BU용 MCP 엔드포인트를 따로 등록해야 한다(한 연결 = 한 BU 고정). 이전 BU로 되돌리는 것도 엔드포인트만 바꾸면 되며, 각 BU 데이터는 보존된다.
 - ⚠️ 기존 `journey_history.md`·스킬 참조의 일부 값은 **이전 계정 기준(stale)**. 옛 저니 ID·이메일 ID·DE GUID·키는 **현재 BU에서 다시 조회해** 써야 한다.
 
 ### 실제 값 (현재 BU 기준)
 
 - 커스텀 액티비티 `applicationExtensionKey` = **`8b27e59c-8fb0-4b83-92b4-550aa7a7a490`** (운영 저니에서 사용 중)
-  - ⚠️ 스킬 `reference/journey-build.md` ④의 `ac710353-...`는 **옛 계정 값** → 현재 BU 값으로 교체 필요
+  - 스킬 `reference/journey-build.md` ④는 이 값(`8b27e59c-…`)으로 반영 완료. 옛 계정 값 `ac710353-…`은 사용하지 않음.
 - micrm 서비스 엔드포인트: `https://sales.micrm.co.kr/sf/06/` 하위 `execute / save / validate / publish / stop / unpublish / testSave .service`
 
 ### `seq`의 정체 — 알림톡 템플릿 식별자
@@ -598,7 +599,7 @@ npm start   --prefix slack-bridge
 ## 관련 파일
 
 ```
-mce-package-main/
+mce-package-v3-main/
 ├── README.md                          # 이 파일
 ├── CLAUDE.md                          # 오케스트레이터 정의 (총괄 + STEP 1~3 하위 워커 위임)
 ├── generate_campaign_definition.js    # xlsx 정의서 생성 스크립트 (exceljs 의존)

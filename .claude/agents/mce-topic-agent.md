@@ -25,8 +25,8 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 ## 워크플로우
 
-> 추천은 **고객 데이터 분석에 근거**한다. 분석 소스는 `Customer_Profile`(key `CD_Customer_Profile_DE`, folder Customer Data 93869) 하나다. 1행=1고객이며 모든 캠페인 신호가 집계 컬럼으로 들어있다.
-> 신호 컬럼 ↔ 추천 캠페인 매핑, 동의 필터 규칙은 SKILL.md STEP 1 + `reference/de-and-folders.md`를 SSOT로 따른다.
+> 추천은 **고객 데이터 분석에 근거**한다. 분석 소스는 `Customer_Profile`(key `CD_Customer_Profile_DE`) 하나다. 1행=1고객이며 **원천 사실값 컬럼**(날짜·수치)을 담는다. 캠페인 신호(휴면·생일 등)는 플래그로 저장돼 있지 않고, **진입 DE 만들 때 Automation SQL Query가 원천 컬럼으로 계산**한다.
+> 원천 컬럼 ↔ 추천 캠페인 + 판정 계산식, 동의 필터 규칙은 SKILL.md STEP 1 + `reference/de-and-folders.md`를 SSOT로 따른다.
 
 > ⚡ **대상자 수 집계는 이 워커의 일이 아니다.** 목록은 "어떤 캠페인이 **가능한지**"만 컬럼 기준으로 제시한다. 확정 대상자 집계와 진입 DE 생성은 사용자가 캠페인을 **고른 뒤** 상위(SKILL.md 1-6)에서 한다.
 
@@ -34,23 +34,23 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 `sfmc_get_data_extension_fields`로 `Customer_Profile`의 **필드(신호 컬럼) 목록**을 확인한다. (행 전체를 무겁게 집계하지 않는다.)
 
-### STEP 2. 신호 → 가능 캠페인 매핑
+### STEP 2. 원천 컬럼 → 가능 캠페인 매핑
 
-존재하는 신호 컬럼으로 만들 수 있는 캠페인을 매핑표 기준으로 식별한다:
-`is_birthday_today`(생일), `is_new_member`(신규), `is_dormant`/`is_churn_risk`(이탈·휴면), `has_abandoned_cart`(장바구니), `has_expiring_coupon`(쿠폰만료), `has_expiring_points`(포인트만료), `grade`(VIP·등급), `preferred_category`(취향), `region`(지역). 컬럼이 없으면 그 캠페인은 제외한다.
+존재하는 **원천 컬럼**으로 만들 수 있는 캠페인을 `reference/de-and-folders.md`의 "원천 컬럼 → 캠페인 + 판정 계산식" 표 기준으로 식별한다:
+`birthday`(생일), `signup_date`(신규), `last_login_date`(휴면), `last_order_date`(이탈위험), `has_abandoned_cart`/`cart_total_amount`(장바구니), `coupon_expire_date`/`unused_coupon_count`(쿠폰만료), `points_expire_date`/`points_balance`(포인트만료), `grade`(VIP·등급), `preferred_category`(취향), `region`(지역). 해당 원천 컬럼이 없으면 그 캠페인은 제외한다. **이 단계는 컬럼 존재로 "가능"만 판단하고, 실제 대상 인원 계산식은 1-6(진입 DE 생성)에서 SQL로 평가**한다.
 
 ### STEP 3. (갈래 B 한정) 복잡도 변형
 
-특정 의도가 정해졌으면 분기 컬럼(`grade`, `days_since_last_order`, `total_spent`, `cart_total_amount`, `preferred_category` 등)으로 단순/중간/복합 변형을 제시한다.
+특정 의도가 정해졌으면 분기 컬럼(`grade`, `last_order_date`, `total_spent`, `order_count`, `cart_total_amount`, `preferred_category` 등)으로 단순/중간/복합 변형을 제시한다.
 
 ### STEP 4. 후보 반환
 
 - **갈래 A(리스트업)**: "캠페인명 (신호 컬럼)" 형태의 **가능 캠페인 목록**을 반환한다. 대상 수는 넣지 않는다.
 
   ```
-  1. 생일 쿠폰          (is_birthday_today)
+  1. 생일 쿠폰          (birthday)
   2. 장바구니 이탈       (has_abandoned_cart)
-  3. 이탈/휴면 재활성화   (is_dormant / is_churn_risk)
+  3. 이탈/휴면 재활성화   (last_login_date / last_order_date)
   ... 
   ```
 
