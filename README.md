@@ -55,11 +55,7 @@ claude mcp add --transport http sf-mce-mcp "<발급받은 엔드포인트 URL>"
 
 MCP 엔드포인트 URL에는 **테넌트·세션 토큰**이 들어 있어 PC/계정마다 다릅니다. 그래서 `.mcp.json`은 `.gitignore`로 **추적 제외**돼 있고, **clone하면 이 파일이 없습니다.** 둘 중 한 방법으로 연결하세요. (둘 다 같은 효과 — 하나만 하면 됩니다.)
 
-**방법 A — CLI로 등록 (간편):**
-
-```bash
-claude mcp add --transport http sf-mce-mcp "<발급받은 엔드포인트 URL>"
-```
+**방법 A — CLI로 등록 (간편):** 위 빠른 시작 3단계의 `claude mcp add` 명령과 동일합니다.
 
 **방법 B — `.mcp.json` 파일 직접 생성 (프로젝트에 고정·팀 공유에 유리):**
 프로젝트 루트(이 README와 같은 위치)에 `.mcp.json` 파일을 만들고 아래 내용을 붙여넣습니다. `url`만 발급받은 본인 엔드포인트로 바꿉니다.
@@ -75,7 +71,6 @@ claude mcp add --transport http sf-mce-mcp "<발급받은 엔드포인트 URL>"
 }
 ```
 
-> - 엔드포인트 URL을 아직 모르면 아래 **설치 및 연결 1단계**(Installed Package)부터 진행해 발급받으세요.
 > - **1 연결 = 1 BU 고정**입니다. 다른 BU(사업부)를 쓰려면 그 BU용 엔드포인트로 `url`을 교체하면 됩니다.
 > - 등록 후 Claude Code에서 `/mcp` 로 `Connected to sf-mce-mcp` 를 확인하세요.
 
@@ -191,6 +186,157 @@ npm install exceljs
 ```
 
 > ⚠️ 미설치 시 정의서 생성 단계에서 `Error: Cannot find module 'exceljs'` 오류가 발생합니다.
+
+---
+
+## 사용 예시
+
+### 통합 캠페인 에이전트 (권장)
+
+캠페인 의도를 **한 문장**으로 입력하면 상위 에이전트(오케스트레이터)가 STEP별 서브 에이전트(topic/planning/journey)에 위임해 STEP 1~4를 수행합니다.
+(주제 선정 → 후보 추천 → 모드 선택 → 정의서 생성 → Journey 생성 → 결과 보고)
+
+```
+생성 가능한 캠페인 리스트 업           # 의도 없음 → 진입 DE 목록만 제시
+신규 회원을 위한 캠페인 생성          # 의도 포함 → 캠페인 상세 후보 표
+생일 고객을 위한 캠페인 만들어줘       # 후보 선택 → 모드(수동/자동) → 정의서 + Journey
+이탈 고객 캠페인 자동으로 만들어줘     # 자동 모드: STEP 1~4 무발화 일괄 생성
+```
+
+정의서(xlsx/CSV/Google Sheets)를 직접 첨부하면 STEP 1·2를 건너뛰고 Journey 생성으로 바로 진입합니다.
+
+```
+campaign_definitions/CP_019_생일쿠폰_열람분기Journey_20260610.xlsx 로 저니 생성해줘
+CP_019 정의서로 Journey 만들어줘        # 캠페인 ID만으로 폴더 검색 후 생성
+방금 만든 정의서로 저니 생성해줘         # 최신 xlsx 자동 선택
+```
+
+### 개별 도구 직접 호출
+
+에이전트 흐름을 거치지 않고 `sfmc_*` 도구를 단건으로 활용할 수도 있습니다.
+
+```
+# Journey 생성
+welcome Journey를 만들어줘.
+- 진입 트리거: DE Key = 1sgHo00000001MNIAY_85RHo00000000ZMMAY_I
+- 액티비티: 이메일 → Wait 2일 → Engagement Split (오픈 여부)
+- 재진입: 불가
+
+# Data Extension 조회
+최근 생성된 Data Extension 1개만 찾아줘
+
+# Journey 수정
+welcome Journey의 Wait를 1일로 수정해줘
+
+# SQL Query 실행
+All_Customer DE에서 오늘 가입한 회원만 조회하는 SQL Query를 실행해줘
+```
+
+---
+
+## Journey 생성 워크플로우
+
+`sfmc_create_journey_builder_journey` 도구는 5단계 워크플로우를 따릅니다:
+
+```
+Step 1: Journey 이름 설정
+Step 2: 진입 방식 + 재진입 설정 (API Event / Data Extension)
+Step 3: 채널 + 에셋 결정 (Email / SMS / 기존 사용 여부)
+Step 4: 에셋 준비 (Event Definition, 트리거, 액티비티 JSON 생성)
+Step 5: Journey 최종 생성
+```
+
+### Engagement Split 주의사항
+
+Engagement Split(오픈/클릭 기반)은 **반드시 선행 Email 액티비티가 필요**합니다.
+
+```
+올바른 플로우: 이메일 액티비티 → Wait → Engagement Split
+잘못된 플로우: Wait → Engagement Split (동작하지 않음)
+```
+
+### 재진입(entryMode) 주의사항
+
+`sfmc_create_journey_builder_journey`에 full `body_json`을 넘기면 `entry_mode` 파라미터가 무시되어 `entryMode`가 `NotSet`으로 생성됩니다.
+
+```
+권장: body_json 최상위에 "entryMode" 직접 명시
+  - No re-entry                 → "OnceAndDone"
+  - Re-entry anytime            → "MultipleEntries"
+  - Re-entry only after exiting → "SingleEntryAcrossAllVersions"
+보정: NotSet으로 생성된 경우 sfmc_update_journey로 entryMode만 교정 PUT
+```
+
+---
+
+## Slack 연동 (Slack에서 봇으로 조종)
+
+Slack 메시지로 이 캠페인 에이전트를 직접 조종할 수 있습니다. `slack-bridge/`가 Slack 메시지를 받아 **이 PC의 Claude Code(CLI)** 로 처리하고 결과를 회신합니다. **Socket Mode**를 쓰므로 공개 IP·포트개방·터널이 필요 없고, 이 PC가 켜져 있기만 하면 동작합니다.
+
+### 동작 방식
+
+```
+Slack 채널 (@봇 멘션)  ──▶  slack-bridge (Socket Mode)  ──▶  claude -p (프로젝트 루트에서 실행)
+        ▲                                                              │
+        └───────────────────  결과 회신 (스레드)  ◀────────────────────┘
+```
+
+- 봇이 받은 텍스트를 그대로 `claude -p`에 전달 → `CLAUDE.md`·`mce-campaign` 스킬·`sf-mce-mcp` MCP 도구가 **전부 그대로 적용**됩니다.
+- 같은 **대화(스레드)** 에서 이어 말하면 `--resume`로 대화가 이어져 캠페인 선택·모드 선택·승인 등 **수동 모드 흐름**도 가능합니다.
+- 봇은 사람이 "허용"을 누를 수 없으므로 `--dangerously-skip-permissions`로 도구를 자동 승인합니다. (보안이 필요하면 `.claude/settings.json`의 `allowedTools` 화이트리스트로 대체 가능)
+
+**두 가지 대화 방식** (`@slack/bolt` v4):
+- **Assistant 모드 (기본)** — 좌측 사이드바의 전용 어시스턴트 패널에서 멘션 없이 대화합니다. 자동 스레드·"처리 중…" 상태가 표시되고 답변이 패널 안에만 쌓여 채널이 깨끗합니다.
+- **채널 @멘션 모드 (호환용)** — 채널에서 봇을 멘션하면 스레드로 답합니다.
+
+### Slack 앱 설정 (토큰 2개 발급)
+
+1. https://api.slack.com/apps → **Create New App** → **From scratch** → 앱 이름·워크스페이스 선택
+2. **Settings → Socket Mode** 켜기 → **Basic Information → App-Level Tokens**에서 `connections:write` 스코프로 **`xapp-`** 토큰 발급
+3. **Features → Agents & AI Apps**(또는 App Home의 Assistant 항목) **활성화** — Assistant 모드(사이드바 패널)를 쓰려면 필수
+4. **Features → OAuth & Permissions → Bot Token Scopes**에 `app_mentions:read`, `chat:write`, `assistant:write`, `im:history` 추가 (스코프를 추가하면 봇 사용자가 생성됨)
+5. **Features → Event Subscriptions** → Enable → **Add Bot User Event**에 `app_mention`, `assistant_thread_started`, `assistant_thread_context_changed`, `message.im` 추가 → Save
+6. **Settings → Install App → Install to Workspace** → **`xoxb-`** Bot User OAuth Token 발급
+7. 스코프·이벤트·표시 이름을 바꿨다면 **Install App에서 Reinstall** 해야 반영됨
+
+### 실행
+
+```powershell
+# 1) .env 준비 — 위에서 받은 토큰 2개 입력
+Copy-Item slack-bridge\.env.example slack-bridge\.env
+#   SLACK_BOT_TOKEN=xoxb-...
+#   SLACK_APP_TOKEN=xapp-...
+
+# 2) 의존성 설치 후 실행
+npm install --prefix slack-bridge
+npm start   --prefix slack-bridge
+```
+
+콘솔에 `⚡ MCE Slack 브릿지 실행 중 (Socket Mode · Assistant 모드)`이 뜨면 성공.
+
+- **Assistant 모드**: 좌측 사이드바에서 봇(어시스턴트)을 열어 바로 입력 (첫 진입 시 추천 프롬프트 표시)
+- **채널 @멘션 모드**: 채널에 봇을 초대하고 멘션해 사용
+
+```
+/invite @봇이름
+@봇이름 이탈 고객 캠페인 만들어줘
+사용량                            # 대화 중 입력 → 누적 비용·요청 수 조회 (Assistant·멘션 공통)
+```
+
+> 봇이 채널에 쌓은 자기 메시지를 정리하려면: `node slack-bridge\cleanup.js <채널이름>` (채널 `history` 스코프 필요)
+
+### 출력·사용량 처리
+
+- **Slack은 마크다운 표를 못 그리므로**, 브릿지가 결과의 표를 **후보별 목록 + 구분선**으로 변환하고 `**굵게**`를 Slack 문법 `*굵게*`로 치환합니다. (`toSlackMrkdwn`)
+- 각 응답에 비용은 표시하지 않으며, **`@봇 사용량`** 명령으로 해당 스레드의 누적 비용·요청 수를 조회합니다.
+- 봇이 쓰는 비용은 이 PC의 **`claude` CLI에 로그인된 계정의 사용 한도**에서 차감됩니다 (별도 달러 청구 아님). 이 계정은 데스크톱 앱에 로그인한 계정과 **다를 수 있습니다** — `.claude.json`의 `emailAddress`로 확인하세요. 봇이 `session limit` 메시지를 답하면 그 계정의 한도에 도달한 것입니다.
+- **계정을 바꾸려면**: 터미널에서 `claude` → `/logout` → `/login`으로 원하는 계정 로그인 후 **브릿지를 재시작**(`npm start --prefix slack-bridge`)해야 새 계정이 반영됩니다. (계정 교체는 사용량 주체만 바꾸며, SFMC 접근·기능과는 무관합니다.) 상세는 [`slack-bridge/README.md`](slack-bridge/README.md)의 "사용 계정 · 사용량" 참고.
+
+> ⚠️ 이 PC가 꺼지면 봇도 멈춥니다. 상시 운영하려면 절전 해제 또는 자동 실행 등록이 필요합니다.
+> 설정 상세는 [`slack-bridge/README.md`](slack-bridge/README.md) 참고.
+
+> **PowerShell 실행 정책 오류**(`npm.ps1 ... PSSecurityException`)면 `npm` 대신 `node slack-bridge\bridge.js` 로 실행하세요.
+> **로그인 시 자동 실행**을 원하면 `run-bridge.cmd`(자동 재시작 런처)를 시작프로그램에 등록합니다 — 방법은 [`slack-bridge/README.md`](slack-bridge/README.md)의 "자동 실행" 참고.
 
 ---
 
@@ -354,157 +500,6 @@ npm install exceljs
 |------|------|
 | `sfmc_get_timezones` | 사용 가능한 타임존 목록 조회 |
 | `sfmc_describe_object` | SFMC 오브젝트 스키마 조회 (SOAP API) |
-
----
-
-## 사용 예시
-
-### 통합 캠페인 에이전트 (권장)
-
-캠페인 의도를 **한 문장**으로 입력하면 상위 에이전트(오케스트레이터)가 STEP별 서브 에이전트(topic/planning/journey)에 위임해 STEP 1~4를 수행합니다.
-(주제 선정 → 후보 추천 → 모드 선택 → 정의서 생성 → Journey 생성 → 결과 보고)
-
-```
-생성 가능한 캠페인 리스트 업           # 의도 없음 → 진입 DE 목록만 제시
-신규 회원을 위한 캠페인 생성          # 의도 포함 → 캠페인 상세 후보 표
-생일 고객을 위한 캠페인 만들어줘       # 후보 선택 → 모드(수동/자동) → 정의서 + Journey
-이탈 고객 캠페인 자동으로 만들어줘     # 자동 모드: STEP 1~4 무발화 일괄 생성
-```
-
-정의서(xlsx/CSV/Google Sheets)를 직접 첨부하면 STEP 1·2를 건너뛰고 Journey 생성으로 바로 진입합니다.
-
-```
-campaign_definitions/CP_019_생일쿠폰_열람분기Journey_20260610.xlsx 로 저니 생성해줘
-CP_019 정의서로 Journey 만들어줘        # 캠페인 ID만으로 폴더 검색 후 생성
-방금 만든 정의서로 저니 생성해줘         # 최신 xlsx 자동 선택
-```
-
-### 개별 도구 직접 호출
-
-에이전트 흐름을 거치지 않고 `sfmc_*` 도구를 단건으로 활용할 수도 있습니다.
-
-```
-# Journey 생성
-welcome Journey를 만들어줘.
-- 진입 트리거: DE Key = 1sgHo00000001MNIAY_85RHo00000000ZMMAY_I
-- 액티비티: 이메일 → Wait 2일 → Engagement Split (오픈 여부)
-- 재진입: 불가
-
-# Data Extension 조회
-최근 생성된 Data Extension 1개만 찾아줘
-
-# Journey 수정
-welcome Journey의 Wait를 1일로 수정해줘
-
-# SQL Query 실행
-All_Customer DE에서 오늘 가입한 회원만 조회하는 SQL Query를 실행해줘
-```
-
----
-
-## Journey 생성 워크플로우
-
-`sfmc_create_journey_builder_journey` 도구는 5단계 워크플로우를 따릅니다:
-
-```
-Step 1: Journey 이름 설정
-Step 2: 진입 방식 + 재진입 설정 (API Event / Data Extension)
-Step 3: 채널 + 에셋 결정 (Email / SMS / 기존 사용 여부)
-Step 4: 에셋 준비 (Event Definition, 트리거, 액티비티 JSON 생성)
-Step 5: Journey 최종 생성
-```
-
-### Engagement Split 주의사항
-
-Engagement Split(오픈/클릭 기반)은 **반드시 선행 Email 액티비티가 필요**합니다.
-
-```
-올바른 플로우: 이메일 액티비티 → Wait → Engagement Split
-잘못된 플로우: Wait → Engagement Split (동작하지 않음)
-```
-
-### 재진입(entryMode) 주의사항
-
-`sfmc_create_journey_builder_journey`에 full `body_json`을 넘기면 `entry_mode` 파라미터가 무시되어 `entryMode`가 `NotSet`으로 생성됩니다.
-
-```
-권장: body_json 최상위에 "entryMode" 직접 명시
-  - No re-entry                 → "OnceAndDone"
-  - Re-entry anytime            → "MultipleEntries"
-  - Re-entry only after exiting → "SingleEntryAcrossAllVersions"
-보정: NotSet으로 생성된 경우 sfmc_update_journey로 entryMode만 교정 PUT
-```
-
----
-
-## Slack 연동 (Slack에서 봇으로 조종)
-
-Slack 메시지로 이 캠페인 에이전트를 직접 조종할 수 있습니다. `slack-bridge/`가 Slack 메시지를 받아 **이 PC의 Claude Code(CLI)** 로 처리하고 결과를 회신합니다. **Socket Mode**를 쓰므로 공개 IP·포트개방·터널이 필요 없고, 이 PC가 켜져 있기만 하면 동작합니다.
-
-### 동작 방식
-
-```
-Slack 채널 (@봇 멘션)  ──▶  slack-bridge (Socket Mode)  ──▶  claude -p (프로젝트 루트에서 실행)
-        ▲                                                              │
-        └───────────────────  결과 회신 (스레드)  ◀────────────────────┘
-```
-
-- 봇이 받은 텍스트를 그대로 `claude -p`에 전달 → `CLAUDE.md`·`mce-campaign` 스킬·`sf-mce-mcp` MCP 도구가 **전부 그대로 적용**됩니다.
-- 같은 **대화(스레드)** 에서 이어 말하면 `--resume`로 대화가 이어져 캠페인 선택·모드 선택·승인 등 **수동 모드 흐름**도 가능합니다.
-- 봇은 사람이 "허용"을 누를 수 없으므로 `--dangerously-skip-permissions`로 도구를 자동 승인합니다. (보안이 필요하면 `.claude/settings.json`의 `allowedTools` 화이트리스트로 대체 가능)
-
-**두 가지 대화 방식** (`@slack/bolt` v4):
-- **Assistant 모드 (기본)** — 좌측 사이드바의 전용 어시스턴트 패널에서 멘션 없이 대화합니다. 자동 스레드·"처리 중…" 상태가 표시되고 답변이 패널 안에만 쌓여 채널이 깨끗합니다.
-- **채널 @멘션 모드 (호환용)** — 채널에서 봇을 멘션하면 스레드로 답합니다.
-
-### Slack 앱 설정 (토큰 2개 발급)
-
-1. https://api.slack.com/apps → **Create New App** → **From scratch** → 앱 이름·워크스페이스 선택
-2. **Settings → Socket Mode** 켜기 → **Basic Information → App-Level Tokens**에서 `connections:write` 스코프로 **`xapp-`** 토큰 발급
-3. **Features → Agents & AI Apps**(또는 App Home의 Assistant 항목) **활성화** — Assistant 모드(사이드바 패널)를 쓰려면 필수
-4. **Features → OAuth & Permissions → Bot Token Scopes**에 `app_mentions:read`, `chat:write`, `assistant:write`, `im:history` 추가 (스코프를 추가하면 봇 사용자가 생성됨)
-5. **Features → Event Subscriptions** → Enable → **Add Bot User Event**에 `app_mention`, `assistant_thread_started`, `assistant_thread_context_changed`, `message.im` 추가 → Save
-6. **Settings → Install App → Install to Workspace** → **`xoxb-`** Bot User OAuth Token 발급
-7. 스코프·이벤트·표시 이름을 바꿨다면 **Install App에서 Reinstall** 해야 반영됨
-
-### 실행
-
-```powershell
-# 1) .env 준비 — 위에서 받은 토큰 2개 입력
-Copy-Item slack-bridge\.env.example slack-bridge\.env
-#   SLACK_BOT_TOKEN=xoxb-...
-#   SLACK_APP_TOKEN=xapp-...
-
-# 2) 의존성 설치 후 실행
-npm install --prefix slack-bridge
-npm start   --prefix slack-bridge
-```
-
-콘솔에 `⚡ MCE Slack 브릿지 실행 중 (Socket Mode · Assistant 모드)`이 뜨면 성공.
-
-- **Assistant 모드**: 좌측 사이드바에서 봇(어시스턴트)을 열어 바로 입력 (첫 진입 시 추천 프롬프트 표시)
-- **채널 @멘션 모드**: 채널에 봇을 초대하고 멘션해 사용
-
-```
-/invite @봇이름
-@봇이름 이탈 고객 캠페인 만들어줘
-사용량                            # 대화 중 입력 → 누적 비용·요청 수 조회 (Assistant·멘션 공통)
-```
-
-> 봇이 채널에 쌓은 자기 메시지를 정리하려면: `node slack-bridge\cleanup.js <채널이름>` (채널 `history` 스코프 필요)
-
-### 출력·사용량 처리
-
-- **Slack은 마크다운 표를 못 그리므로**, 브릿지가 결과의 표를 **후보별 목록 + 구분선**으로 변환하고 `**굵게**`를 Slack 문법 `*굵게*`로 치환합니다. (`toSlackMrkdwn`)
-- 각 응답에 비용은 표시하지 않으며, **`@봇 사용량`** 명령으로 해당 스레드의 누적 비용·요청 수를 조회합니다.
-- 봇이 쓰는 비용은 이 PC의 **`claude` CLI에 로그인된 계정의 사용 한도**에서 차감됩니다 (별도 달러 청구 아님). 이 계정은 데스크톱 앱에 로그인한 계정과 **다를 수 있습니다** — `.claude.json`의 `emailAddress`로 확인하세요. 봇이 `session limit` 메시지를 답하면 그 계정의 한도에 도달한 것입니다.
-- **계정을 바꾸려면**: 터미널에서 `claude` → `/logout` → `/login`으로 원하는 계정 로그인 후 **브릿지를 재시작**(`npm start --prefix slack-bridge`)해야 새 계정이 반영됩니다. (계정 교체는 사용량 주체만 바꾸며, SFMC 접근·기능과는 무관합니다.) 상세는 [`slack-bridge/README.md`](slack-bridge/README.md)의 "사용 계정 · 사용량" 참고.
-
-> ⚠️ 이 PC가 꺼지면 봇도 멈춥니다. 상시 운영하려면 절전 해제 또는 자동 실행 등록이 필요합니다.
-> 설정 상세는 [`slack-bridge/README.md`](slack-bridge/README.md) 참고.
-
-> **PowerShell 실행 정책 오류**(`npm.ps1 ... PSSecurityException`)면 `npm` 대신 `node slack-bridge\bridge.js` 로 실행하세요.
-> **로그인 시 자동 실행**을 원하면 `run-bridge.cmd`(자동 재시작 런처)를 시작프로그램에 등록합니다 — 방법은 [`slack-bridge/README.md`](slack-bridge/README.md)의 "자동 실행" 참고.
 
 ---
 
