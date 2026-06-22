@@ -283,9 +283,9 @@ const assistant = new Assistant({
     await setSuggestedPrompts({
       title: '이런 걸 할 수 있어요',
       prompts: [
-        { title: '신규회원 캠페인 추천', message: '신규회원 캠페인 추천해줘' },
-        { title: '최근 저니 목록', message: '최근 생성된 저니 3개 목록' },
-        { title: '이탈 고객 캠페인 생성', message: '이탈 고객 캠페인 만들어줘' },
+        { title: '생성 가능한 캠페인 추천', message: '생성 가능한 캠페인 추천해줘' },
+        { title: '최근 저니 목록 조회', message: '최근 생성된 저니 목록 조회해줘' },
+        { title: 'MCE 세팅 점검', message: 'MCE 초기 세팅 점검해줘 (발송 준비 상태 확인)' },
       ],
     });
   },
