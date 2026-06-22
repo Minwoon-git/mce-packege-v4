@@ -325,19 +325,6 @@ npm start   --prefix slack-bridge
 
 > 봇이 채널에 쌓은 자기 메시지를 정리하려면: `node slack-bridge\cleanup.js <채널이름>` (채널 `history` 스코프 필요)
 
-### 출력·사용량 처리
-
-- **Slack은 마크다운 표를 못 그리므로**, 브릿지가 결과의 표를 **후보별 목록 + 구분선**으로 변환하고 `**굵게**`를 Slack 문법 `*굵게*`로 치환합니다. (`toSlackMrkdwn`)
-- 각 응답에 비용은 표시하지 않으며, **`@봇 사용량`** 명령으로 해당 스레드의 누적 비용·요청 수를 조회합니다.
-- 봇이 쓰는 비용은 이 PC의 **`claude` CLI에 로그인된 계정의 사용 한도**에서 차감됩니다 (별도 달러 청구 아님). 이 계정은 데스크톱 앱에 로그인한 계정과 **다를 수 있습니다** — `.claude.json`의 `emailAddress`로 확인하세요. 봇이 `session limit` 메시지를 답하면 그 계정의 한도에 도달한 것입니다.
-- **계정을 바꾸려면**: 터미널에서 `claude` → `/logout` → `/login`으로 원하는 계정 로그인 후 **브릿지를 재시작**(`npm start --prefix slack-bridge`)해야 새 계정이 반영됩니다. (계정 교체는 사용량 주체만 바꾸며, SFMC 접근·기능과는 무관합니다.) 상세는 [`slack-bridge/README.md`](slack-bridge/README.md)의 "사용 계정 · 사용량" 참고.
-
-> ⚠️ 이 PC가 꺼지면 봇도 멈춥니다. 상시 운영하려면 절전 해제 또는 자동 실행 등록이 필요합니다.
-> 설정 상세는 [`slack-bridge/README.md`](slack-bridge/README.md) 참고.
-
-> **PowerShell 실행 정책 오류**(`npm.ps1 ... PSSecurityException`)면 `npm` 대신 `node slack-bridge\bridge.js` 로 실행하세요.
-> **로그인 시 자동 실행**을 원하면 `run-bridge.cmd`(자동 재시작 런처)를 시작프로그램에 등록합니다 — 방법은 [`slack-bridge/README.md`](slack-bridge/README.md)의 "자동 실행" 참고.
-
 ---
 
 ## 제공 도구 목록
