@@ -51,29 +51,6 @@ claude mcp add --transport http sf-mce-mcp "<발급받은 엔드포인트 URL>"
 
 > 발급받을 엔드포인트 URL을 모른다면 아래 **설치 및 연결** 1단계(Installed Package)부터 진행해 테넌트별 URL을 발급받으세요.
 
-### ⚠️ `.mcp.json`은 깃에 없습니다 — clone 후 직접 만들어야 동작합니다
-
-MCP 엔드포인트 URL에는 **테넌트·세션 토큰**이 들어 있어 PC/계정마다 다릅니다. 그래서 `.mcp.json`은 `.gitignore`로 **추적 제외**돼 있고, **clone하면 이 파일이 없습니다.** 둘 중 한 방법으로 연결하세요. (둘 다 같은 효과 — 하나만 하면 됩니다.)
-
-**방법 A — CLI로 등록 (간편):** 위 빠른 시작 3단계의 `claude mcp add` 명령과 동일합니다.
-
-**방법 B — `.mcp.json` 파일 직접 생성 (프로젝트에 고정·팀 공유에 유리):**
-프로젝트 루트(이 README와 같은 위치)에 `.mcp.json` 파일을 만들고 아래 내용을 붙여넣습니다. `url`만 발급받은 본인 엔드포인트로 바꿉니다.
-
-```json
-{
-  "mcpServers": {
-    "sf-mce-mcp": {
-      "type": "http",
-      "url": "https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<세션토큰>/api/mcp"
-    }
-  }
-}
-```
-
-> - **1 연결 = 1 BU 고정**입니다. 다른 BU(사업부)를 쓰려면 그 BU용 엔드포인트로 `url`을 교체하면 됩니다.
-> - 등록 후 Claude Code에서 `/mcp` 로 `Connected to sf-mce-mcp` 를 확인하세요.
-
 ---
 
 ## 설치 및 연결
