@@ -117,7 +117,7 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 ```
 사용자 입력 → 상위 에이전트(오케스트레이터)
-  → [STEP 1] 주제 선정   : mce-topic-agent   — 연결 DE 분석 → 후보 추천 → (상위가) 사용자 선택
+  → [STEP 1] 주제 선정   : mce-topic-agent   — Customer_Profile 신호 컬럼 분석 → 가능 캠페인 추천 → (상위가) 사용자 선택
   → [STEP 2] 모드 선택 + 기획 : mce-planning-agent — 수동/자동 선택 → Plan 설계 + xlsx 정의서 생성
   → [STEP 3] Journey 생성 : mce-journey-agent  — 정의서 기반 SFMC Journey 생성 (기본 Draft)
   → [STEP 4] 결과 보고     : 상위가 종합 보고
@@ -127,10 +127,10 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 | 갈래 | 입력 예 | 출력 |
 |------|---------|------|
-| **리스트업 (의도 없음)** | "생성 가능한 캠페인 리스트 업", "어떤 캠페인 만들 수 있어?" | 진입 DE 목록만 간단히 번호로 제시 |
-| **의도 포함** | "신규회원 캠페인 만들어줘", "장바구니 캠페인" | 해당 DE의 상세 후보 표(복잡도 단순→복합, 2~5개) |
+| **리스트업 (의도 없음)** | "생성 가능한 캠페인 리스트 업", "어떤 캠페인 만들 수 있어?" | 가능 캠페인 목록(캠페인명 + 신호 컬럼)을 번호로 제시 |
+| **의도 포함** | "신규회원 캠페인 만들어줘", "장바구니 캠페인" | 해당 의도의 복잡도별 상세 후보 표(활용 신호·추천 Journey 유형, 2~5개) |
 
-> 리스트업으로 DE 목록을 먼저 본 뒤 특정 캠페인을 지목하면 자동으로 의도 갈래(상세 후보 표)로 전환됩니다.
+> 리스트업으로 가능 캠페인 목록을 먼저 본 뒤 특정 캠페인을 지목하면 자동으로 의도 갈래(상세 후보 표)로 전환됩니다.
 
 > 사용자가 정의서(xlsx/CSV/Google Sheets)를 **직접 첨부**한 경우 STEP 1·2를 건너뛰고 STEP 3으로 바로 이동합니다.
 
