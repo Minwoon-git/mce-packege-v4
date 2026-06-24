@@ -63,9 +63,14 @@ description: >
 [STEP 1] 주제 선정  →  연결된 DE 분석 → 캠페인 후보 목록 추천
    │        → 사용자가 만들 캠페인을 선택   (※ 모드와 무관, 항상 동일)
    │
+   ├── (메시지 채널이 알림톡/문자/카카오/SMS인 경우만)
+   │   [★채널 해소] 오케스트레이터가 micrm seq 확보  →  ① BU 연결 채널·키 확인
+   │        (브라우저)                                   ② send_key로 atTmplLst 카탈로그 조회
+   │                                                     ③ seq 선택(자동=의도매칭 / 수동=후보제시)
+   │                                                     ④ 템플릿 변수 #{…}→DE컬럼 매핑
    ▼
 [STEP 2] 실행 모드 선택  ──  수동 / 자동   (※ 기획부터 적용)
-   │        Plan 설계 + xlsx 정의서 생성
+   │        Plan 설계 + xlsx 정의서 생성  (알림톡이면 위 seq·키·변수매핑을 정의서에 기록)
    │        (수동: 대화로 Plan 합의 후 정의서 생성)
    │        (자동: 기본값으로 일괄 설계 → 그대로 STEP 3까지 진행)
    ▼
@@ -76,6 +81,8 @@ description: >
 ```
 
 > 사용자가 정의서(xlsx/CSV/Google Sheets)를 **직접 첨부**한 경우 STEP 1·2를 건너뛰고 STEP 3(저니 생성)으로 바로 이동한다.
+
+> 📨 **메시지 채널이 알림톡/문자/카카오/SMS일 때만 추가되는 "채널 해소(seq 확보)" 단계** — micrm 템플릿 카탈로그 조회는 **micrm 웹세션(브라우저)이 필요**하므로 격리·헤드리스 워커는 못 한다. 따라서 **seq·`applicationExtensionKey`·변수매핑은 오케스트레이터가 STEP 2 위임 전에 브라우저로 확정**해 planning 워커에 입력으로 넘기고, 워커는 그 값을 정의서에 기록만 한다. 상세 절차는 아래 "메시지 채널 해소" 절 참조.
 
 ## 조회 요청 (읽기 전용 — 생성 흐름과 분리)
 
@@ -331,11 +338,13 @@ Plan의 분기 기준 속성은 **실제 DE에 존재하는 필드**를 사용�
 | 단계 (Step) | 순서 (1, 2, 3-A, 3-B ...) |
 | 컴포넌트 유형 | Entry Source / Message (Email) / Message (알림톡/문자/카카오/SMS) / Wait / Decision Split / Engagement Split / Wait & Exit 등 |
 | 상세 설정 조건 / 분기 로직 (Criteria & Path) | 컴포넌트별 세부 조건 및 분기 경로 |
-| 연결 콘텐츠 명칭 (Email Name) | Content Builder 에셋명 |
-| 연결 콘텐츠 ID (Email ID) | Content Builder legacyId |
+| 연결 콘텐츠 명칭 (Email Name / 알림톡 템플릿명) | 이메일=Content Builder 에셋명 / 알림톡=micrm 템플릿명 |
+| 연결 콘텐츠 ID (Email ID / 알림톡 seq) | 이메일=Content Builder legacyId / 알림톡=micrm `tmpl_seq`(문자열) |
 | 대기 기간 (Wait) | 대기 시간 (예: 3 Days, 1 Day) |
 | 고객 재진입 설정 (Contact Re-entry) | No re-entry / Re-entry only after exiting / Re-entry at any time |
 | Schedule Flow Mode | Recurring (반복) 또는 빈값 (On Activation — 발행 시 1회) |
+| applicationExtensionKey (알림톡/문자) | 알림톡/문자 채널일 때만. 그 BU 커스텀 액티비티 키(오케스트레이터가 채널 해소 단계에서 확정). 이메일은 빈값 |
+| 변수 매핑 (알림톡 #{변수}→DE컬럼) | 알림톡/문자 채널일 때만. 템플릿 변수↔진입 DE 컬럼 매핑(예: `FirstName→FirstName; phone→Phone`). 이메일은 빈값 |
 
 **메시지 채널 판단 기준 (컴포넌트 유형 결정):**
 
@@ -345,6 +354,18 @@ Plan의 분기 기준 속성은 **실제 DE에 존재하는 필드**를 사용�
 | 위 문구 없음 (기본) | `Message (Email)` | 이메일 액티비티(`EMAILV2`) + 이메일 에셋 생성 |
 
 > ⚠️ 위 4종 채널 문구가 감지되면 **`Message (Email)`을 `Message (알림톡/문자/카카오/SMS)`로 대체**한다. 같은 단계에 이메일과 채널 메시지를 중복으로 넣지 않는다. (REST 단독 처리)
+
+#### 📨 메시지 채널 해소 (seq 확보) — 알림톡/문자/카카오/SMS일 때 오케스트레이터가 STEP 2 위임 전에 수행
+
+> micrm 카탈로그 조회엔 **micrm 웹세션(브라우저)** 이 필요하다. 격리·헤드리스 워커(planning/journey)는 micrm에 접근 못 하므로, 아래는 **반드시 오케스트레이터(메인 루프)가 직접** 수행하고 결과(seq·키·변수매핑)를 planning 워커 입력으로 넘긴다.
+
+1. **BU 연결 채널·키 확인** — 현재 BU의 기존 알림톡 저니를 `sfmc_get_journey`로 읽어 ① REST 액티비티의 `configurationArguments.applicationExtensionKey` ② 발신 프로필의 `send_key`를 얻는다. (저니 UI에서 커스텀 액티비티 열기 → 발신 프로필 `@채널명(send_key)`로도 확인 가능. 키·`send_key`는 **BU마다 다름** — 하드코딩 금지.)
+2. **카탈로그 조회** — 위 `send_key`로 micrm `atTmplLst`를 브라우저(Claude in Chrome)로 호출해 템플릿 목록(seq ↔ 템플릿명 ↔ 본문 ↔ 변수)을 얻는다. 상세 API는 README "커스텀 액티비티(알림톡/카카오) 콘텐츠 연동" 절 참조.
+3. **seq 선택** — **자동 모드**: 캠페인 의도에 가장 맞는 템플릿을 오케스트레이터가 자동 선택(무엇을 왜 골랐는지 결과에 1줄). **수동 모드**: `AskUserQuestion`으로 후보(seq+템플릿명+미리보기)를 제시해 사용자가 선택.
+4. **변수 매핑** — 선택 템플릿 본문의 카카오 변수 `#{변수명}`을 진입 DE 컬럼에 매핑한다(예: `FirstName→FirstName; phone→Phone; contactkey→SubscriberKey`).
+5. **위임** — 위 {seq, `applicationExtensionKey`, 변수매핑}을 STEP 2 planning 워커에 입력으로 넘겨 **정의서의 해당 컬럼에 기록**하게 한다. 이후 STEP 3 journey 워커는 정의서 값만으로 REST 액티비티를 만든다(micrm 재접근 불필요).
+
+> ⚠️ **seq는 반드시 "이 BU 연결 채널"의 것**이어야 한다. 다른 채널 seq를 넣으면 JB UI에서 "사용할 수 없는 콘텐츠"로 뜬다. ([`reference/journey-build.md`](reference/journey-build.md) ④)
 
 **고객 재진입 설정 판단 기준 (자동 모드에서 미지정 시):**
 

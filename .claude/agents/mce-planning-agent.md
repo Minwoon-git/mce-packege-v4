@@ -14,7 +14,7 @@ Journey를 SFMC에 직접 생성하지 않습니다 — 파일 생성 후 종료
 
 ## 호출/반환 규약 (상위 오케스트레이터 ↔ 워커)
 
-- **입력**: 상위가 전달하는 ① 선택된 캠페인명·활용 DE·핵심 필드, ② 실행 모드(수동/자동), ③ 수동 모드이면 상위가 사용자와 확정한 Plan 값(진입·스케줄·재진입·단계·분기 등)을 받는다.
+- **입력**: 상위가 전달하는 ① 선택된 캠페인명·활용 DE·핵심 필드, ② 실행 모드(수동/자동), ③ 수동 모드이면 상위가 사용자와 확정한 Plan 값(진입·스케줄·재진입·단계·분기 등), ④ **메시지 채널이 알림톡/문자/카카오/SMS이면** 상위가 "채널 해소" 단계에서 확정한 `seq`·`applicationExtensionKey`·`변수 매핑`을 받는다(워커는 micrm를 직접 조회하지 않는다).
 - **단일 출처(SSOT)**: 정의서 시트 구조·생성 스크립트·저니 구조 패턴·경로 규칙은 `mce-campaign` 스킬의 STEP 2 절과 `reference/` 파일을 따른다. 충돌 시 스킬을 우선한다.
 - **사용자에게 직접 질문하지 않는다.** 수동 모드에서 값이 부족하면 임의 결정하지 말고 상위에 "어떤 값이 필요한지" 반환하여 상위가 사용자에게 묻게 한다.
 - **반환물**: 생성한 정의서 **파일 경로 + 캠페인 ID + Plan 요약 + 정의서 테이블(개요/저니 구조)** 을 반환한다. 이 결과를 상위가 받아 (수동 시) 사용자 승인을 거친 뒤 mce-journey-agent에 넘긴다.
@@ -65,13 +65,17 @@ Plan의 분기 기준 속성은 **실제 DE에 존재하는 필드**를 사용�
 |---|---|
 | 캠페인 ID | 개요 탭과 매칭 키 |
 | 단계 (Step) | 순서 (1, 2, 3-A, 3-B ...) |
-| 컴포넌트 유형 | Entry Source / Message (Email) / Wait / Decision Split / Engagement Split / Wait & Exit 등 |
+| 컴포넌트 유형 | Entry Source / Message (Email) / Message (알림톡/문자/카카오/SMS) / Wait / Decision Split / Engagement Split / Wait & Exit 등 |
 | 상세 설정 조건 / 분기 로직 (Criteria & Path) | 컴포넌트별 세부 조건 및 분기 경로 |
-| 연결 콘텐츠 명칭 (Email Name) | Content Builder 에셋명 |
-| 연결 콘텐츠 ID (Email ID) | Content Builder legacyId |
+| 연결 콘텐츠 명칭 (Email Name / 알림톡 템플릿명) | 이메일=Content Builder 에셋명 / 알림톡=micrm 템플릿명 |
+| 연결 콘텐츠 ID (Email ID / 알림톡 seq) | 이메일=Content Builder legacyId / 알림톡=micrm `tmpl_seq`(문자열) |
 | 대기 기간 (Wait) | 대기 시간 (예: 3 Days, 1 Day) |
 | 고객 재진입 설정 (Contact Re-entry) | No re-entry / Re-entry only after exiting / Re-entry at any time |
 | Schedule Flow Mode | Recurring (반복) 또는 빈값 (On Activation — 발행 시 1회) |
+| applicationExtensionKey (알림톡/문자) | 알림톡/문자일 때만. 상위가 채널 해소 단계에서 확정해 넘긴 그 BU 키. 이메일은 빈값 |
+| 변수 매핑 (알림톡 #{변수}→DE컬럼) | 알림톡/문자일 때만. 상위가 넘긴 템플릿 변수↔진입 DE 컬럼 매핑(예: `FirstName→FirstName; phone→Phone`). 이메일은 빈값 |
+
+> 📨 **알림톡/문자/카카오/SMS 채널 처리**: 이 채널은 이메일 에셋을 만들지 않고 **REST 커스텀 액티비티**로 발송한다. seq·`applicationExtensionKey`·변수매핑은 **직접 조회하지 말고**(micrm 웹세션은 워커가 못 씀), **상위 오케스트레이터가 "채널 해소" 단계에서 확정해 입력으로 넘긴 값**을 위 컬럼(`연결 콘텐츠 ID`=seq, `applicationExtensionKey`, `변수 매핑`)에 그대로 기록한다. 값이 안 넘어왔으면 임의로 채우지 말고 상위에 "seq/키 필요"를 반환한다.
 
 **고객 재진입 설정 판단 기준 (자동 모드에서 미지정 시):**
 
@@ -115,18 +119,30 @@ Plan의 분기 기준 속성은 **실제 DE에 존재하는 필드**를 사용�
 3. 실행 완료 후 `campaign_data.json` 삭제
 
 ```json
-// campaign_data.json 형식
+// campaign_data.json 형식 (저니 구조 행 = 11컬럼: …Schedule Flow Mode, applicationExtensionKey, 변수매핑)
 {
   "overviewRows": [
     ["CP_XXX", "시나리오명", "설명", "발송일정", "2026-06-03", "Data Extensions", "DE명"]
   ],
   "journeyRows": [
-    ["CP_XXX", "1", "Entry Source", "조건", "-", "-", "-", "No re-entry", "-"],
-    ["CP_XXX", "2", "Message (Email)", "설명", "이메일명", "63559", "-", "-", "-"],
-    ["CP_XXX", "3", "Wait & Exit", "종료", "-", "-", "1 Day", "-", "-"]
+    ["CP_XXX", "1", "Entry Source", "조건", "-", "-", "-", "No re-entry", "-", "", ""],
+    ["CP_XXX", "2", "Message (Email)", "설명", "이메일명", "63559", "-", "-", "-", "", ""],
+    ["CP_XXX", "3", "Wait & Exit", "종료", "-", "-", "1 Day", "-", "-", "", ""]
   ]
 }
 ```
+
+**알림톡/문자 채널 예시** (col5=템플릿명, col6=seq, col10=키, col11=변수매핑. 이메일 에셋 단계는 건너뜀):
+```json
+{
+  "journeyRows": [
+    ["CP_XXX", "1", "Entry Source", "Data Extension: <진입DE>", "-", "-", "-", "No re-entry", "-", "", ""],
+    ["CP_XXX", "2", "Message (알림톡/문자/카카오/SMS)", "웰컴 알림톡 발송", "신규회원 웰컴", "5311", "-", "-", "-", "ac710353-...", "FirstName→FirstName; phone→Phone; contactkey→SubscriberKey"],
+    ["CP_XXX", "3", "Wait & Exit", "발송 후 종료", "-", "-", "1 Day", "-", "-", "", ""]
+  ]
+}
+```
+> 위 `seq`(5311)·`applicationExtensionKey`(ac710353-…)는 **상위가 채널 해소 단계에서 넘긴 값을 그대로** 넣는다(워커가 만들어내지 않는다). 값은 BU·채널마다 다르다.
 
 ```bash
 node generate_campaign_definition.js CP_XXX_시나리오명_20260603.xlsx campaign_data.json

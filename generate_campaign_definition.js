@@ -82,7 +82,7 @@ async function generateCampaignDefinition(overviewRows, journeyRows, outputPath)
   // ── 저니 구조 탭 ──────────────────────────────────────────
   const ws2 = wb.addWorksheet('저니 구조', { views: [{ state: 'frozen', ySplit: 3 }] });
 
-  ws2.mergeCells('A1:I1');
+  ws2.mergeCells('A1:K1');
   const title2 = ws2.getCell('A1');
   title2.value = 'MCE Journey 구조 정의서';
   title2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR.titleBg } };
@@ -90,7 +90,7 @@ async function generateCampaignDefinition(overviewRows, journeyRows, outputPath)
   title2.alignment = { vertical: 'middle', horizontal: 'left' };
   ws2.getRow(1).height = 28;
 
-  ws2.mergeCells('A2:I2');
+  ws2.mergeCells('A2:K2');
   const sub2 = ws2.getCell('A2');
   sub2.value = '※ 목적: SFMC Journey Builder 자동 생성 및 연동을 위한 기획 정의서';
   sub2.font = { italic: true, size: 9, color: { argb: '595959' }, name: '맑은 고딕' };
@@ -100,8 +100,9 @@ async function generateCampaignDefinition(overviewRows, journeyRows, outputPath)
   const journeyHeaders = [
     '캠페인 ID', '단계 (Step)', '컴포넌트 유형',
     '상세 설정 조건 / 분기 로직 (Criteria & Path)',
-    '연결 콘텐츠 명칭 (Email Name)', '연결 콘텐츠 ID (Email ID)',
-    '대기 기간 (Wait)', '고객 재진입 설정 (Contact Re-entry)', 'Schedule Flow Mode'
+    '연결 콘텐츠 명칭 (Email Name / 알림톡 템플릿명)', '연결 콘텐츠 ID (Email ID / 알림톡 seq)',
+    '대기 기간 (Wait)', '고객 재진입 설정 (Contact Re-entry)', 'Schedule Flow Mode',
+    'applicationExtensionKey (알림톡/문자)', '변수 매핑 (알림톡 #{변수}→DE컬럼)'
   ];
   const hRow2 = ws2.addRow(journeyHeaders);
   styleHeaderRow(hRow2, journeyHeaders.length);
@@ -111,7 +112,7 @@ async function generateCampaignDefinition(overviewRows, journeyRows, outputPath)
     styleDataRow(r, journeyHeaders.length, i % 2 === 0);
   });
 
-  [10, 12, 18, 44, 28, 22, 14, 28, 16].forEach((w, i) => {
+  [10, 12, 18, 44, 28, 22, 14, 28, 16, 40, 36].forEach((w, i) => {
     ws2.getColumn(i + 1).width = w;
   });
 

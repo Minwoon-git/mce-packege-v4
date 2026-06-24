@@ -51,13 +51,15 @@ memory: project
 |---|---|
 | 캠페인 ID | 개요 탭과 매칭 키 |
 | 단계 (Step) | 순서 (1, 2, 3-A, 3-B ...) |
-| 컴포넌트 유형 | Entry Source / Message (Email) / Wait / Decision Split / Wait & Exit 등 |
+| 컴포넌트 유형 | Entry Source / Message (Email) / Message (알림톡/문자/카카오/SMS) / Wait / Decision Split / Wait & Exit 등 |
 | 상세 설정 조건 / 분기 로직 (Criteria & Path) | 컴포넌트별 세부 조건 및 분기 경로 |
-| 연결 콘텐츠 명칭 (Email Name) | Content Builder 에셋명 |
-| 연결 콘텐츠 ID (Email ID) | Content Builder legacyId |
+| 연결 콘텐츠 명칭 (Email Name / 알림톡 템플릿명) | 이메일=Content Builder 에셋명 / 알림톡=micrm 템플릿명 |
+| 연결 콘텐츠 ID (Email ID / 알림톡 seq) | 이메일=Content Builder legacyId / 알림톡=micrm `tmpl_seq`(문자열, REST `inArguments.seq`에 사용) |
 | 대기 기간 (Wait) | 대기 시간 (예: 3 Days, 1 Day) |
 | 고객 재진입 설정 (Contact Re-entry) | No re-entry / Re-entry only after exiting / Re-entry at any time |
 | Schedule Flow Mode | Recurring 등 반복 설정 |
+| applicationExtensionKey (알림톡/문자) | 알림톡/문자일 때만. REST `configurationArguments.applicationExtensionKey`에 사용(BU별 값) |
+| 변수 매핑 (알림톡 #{변수}→DE컬럼) | 알림톡/문자일 때만. REST `inArguments`에 바인딩할 템플릿 변수↔진입 DE 컬럼 매핑 |
 
 ---
 
@@ -219,6 +221,7 @@ Decision Split(`MULTICRITERIADECISION`)은 `configurationArguments.criteria`에 
 
 **다른 액티비티:**
 - Email → `EMAILV2` / `configurationArguments.triggeredSend`에 emailId, emailSubject, sendClassificationId, senderProfileId, deliveryProfileId, publicationListId 모두 포함, `isMultipart: true`, `isTrackingClicks: true`
+- **알림톡/문자/카카오/SMS (`Message (알림톡/문자/카카오/SMS)`) → REST 커스텀 액티비티** ([`reference/journey-build.md`](../skills/mce-campaign/reference/journey-build.md) ④). **이메일 에셋·`EMAILV2`를 만들지 않는다.** 정의서 컬럼에서: `연결 콘텐츠 ID`=`inArguments.seq`(문자열), `applicationExtensionKey`=`configurationArguments.applicationExtensionKey`, `변수 매핑`=`inArguments`의 `#{변수}↔DE컬럼` 바인딩. seq나 키가 비어 있으면 임의로 채우지 말고 상위에 반환한다(빈 껍데기 액티비티 방지).
 - Wait → `WAIT` / `configurationArguments`: `waitDuration`, `waitUnit: "DAYS"`
 - Engagement Split → `sfmc_engagement_decision_activity` 도구 사용 (열람/미열람 기준)
 
@@ -241,6 +244,7 @@ sfmc_create_journey_builder_journey 실행
 
 Journey 구성 요소는 저니 구조 탭의 Step 순서대로 구성한다:
 - `컴포넌트 유형 = Message (Email)` → 이메일 액티비티 (이메일 ID 사용)
+- `컴포넌트 유형 = Message (알림톡/문자/카카오/SMS)` → REST 커스텀 액티비티 (seq·키·변수매핑 사용, [`reference/journey-build.md`](../skills/mce-campaign/reference/journey-build.md) ④)
 - `컴포넌트 유형 = Wait` → Wait 액티비티 (Wait 컬럼 값 사용)
 - `컴포넌트 유형 = Wait & Exit` → Wait 후 Exit 처리
 - `컴포넌트 유형 = Decision Split` → Decision Split 액티비티 (분기 로직 적용)

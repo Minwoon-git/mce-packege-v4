@@ -246,6 +246,79 @@ Engagement Split(오픈/클릭 기반)은 **반드시 선행 Email 액티비티�
 
 ---
 
+## 커스텀 액티비티(알림톡/문자/카카오/SMS) — micrm 콘텐츠 연동
+
+이메일 대신 **알림톡/문자/카카오/SMS**로 발송하는 저니는, SFMC 기본 이메일 액티비티가 아니라 BU에 설치된 **micrm REST 커스텀 액티비티**로 처리합니다. **저니 배치는 MCP, 발송 콘텐츠(seq)는 micrm 템플릿을 참조**하는 구조입니다. (페이로드 상세 규격 SSOT: [`.claude/skills/mce-campaign/reference/journey-build.md`](.claude/skills/mce-campaign/reference/journey-build.md) ④)
+
+> ⚠️ 비밀값(Client Secret / JWT Signing Secret / CSRF / JSESSIONID)은 이 문서에 기록하지 않습니다.
+
+### 3-에이전트 흐름에서의 위치
+
+메시지 채널이 알림톡/문자/카카오/SMS면 **오케스트레이터가 STEP 2 위임 전에 "채널 해소(seq 확보)" 단계**를 수행합니다. micrm 카탈로그 조회엔 웹세션(브라우저)이 필요해 격리 워커는 못 하기 때문입니다.
+
+```
+STEP1 topic-agent  →  캠페인 후보
+   │
+   ★채널 해소 (오케스트레이터, 브라우저)        ← 알림톡/문자일 때만
+   │   ① BU 알림톡 저니에서 applicationExtensionKey·send_key 확인
+   │   ② send_key로 atTmplLst 카탈로그 조회
+   │   ③ seq 선택 (자동=의도매칭 / 수동=후보제시)
+   │   ④ 템플릿 변수 #{…} → 진입 DE 컬럼 매핑
+   ▼
+STEP2 planning-agent → 정의서에 seq·키·변수매핑 기록   (micrm 접근 X)
+   ▼
+STEP3 journey-agent  → 정의서 값으로 REST 액티비티 생성  (micrm 접근 X)
+```
+
+→ 정의서가 self-contained해져 STEP 3는 micrm 재접근 없이 재현 가능. 워커는 값을 **소비만** 하며, 비어 있으면 임의 생성하지 않고 상위에 반환합니다.
+
+### 사용법 (요약)
+
+1. **현재 BU 확인** — MCP 연결 BU 조회. 알림톡 커스텀 액티비티가 그 BU에 설치돼 있어야 동작.
+2. **키·채널 확보** — 그 BU 기존 알림톡 저니를 `sfmc_get_journey`로 읽어 ① `configurationArguments.applicationExtensionKey` ② 발신 프로필 `send_key`(JB 액티비티 열기 → `@채널명(send_key)`) 확인.
+3. **seq 고르기** — 위 `send_key`로 `atTmplLst` 카탈로그 조회(브라우저) → 캠페인 의도에 맞는 `tmpl_seq` 선택.
+4. **저니 생성** — `body_json`에 REST 액티비티 추가: `inArguments`에 `seq`(문자열)+DE 필드 바인딩, `configurationArguments.applicationExtensionKey`=그 BU 키.
+5. **확인** — Draft로 두고 JB UI에서 템플릿 정상 로드 확인 → 필요 시 발행.
+
+### ⚠️ 유의점 (자주 막히는 곳)
+
+- **`applicationExtensionKey`는 BU마다 다름** → 하드코딩 금지, 매번 현재 BU에서 확인.
+- **`seq`는 "연결 채널"의 템플릿이어야 함** → 다른 채널 seq를 넣으면 JB UI에서 **"사용할 수 없는 콘텐츠"**.
+- **`seq` 누락 = 빈 껍데기 액티비티** (콘텐츠가 안 채워짐).
+- **`seq`는 문자열**로 넣음(예 `"5311"`). `§extention_cnt§`는 콘텐츠마다 다름(실측 `0`도 정상).
+- **카탈로그 조회는 micrm 웹세션 필요** → 워커가 아니라 **오케스트레이터가 브라우저로** 확정해 전달.
+- 별도 `ContactExit` 액티비티 불필요(마지막 액티비티 뒤 JB가 자동 종료).
+
+### 정의서 ↔ REST 액티비티 매핑
+
+정의서 `저니 구조` 탭의 알림톡 행이 REST 커스텀 액티비티로 들어가는 대응:
+
+| 정의서 컬럼 | 값(예) | REST 매핑 |
+|---|---|---|
+| 컴포넌트 유형 | `Message (알림톡/문자/카카오/SMS)` | `type: "REST"` |
+| 연결 콘텐츠 ID (… 알림톡 seq) | `5311` | `arguments.execute.inArguments[].seq`(문자열) |
+| applicationExtensionKey (알림톡/문자) | `ac710353-…` | `configurationArguments.applicationExtensionKey` |
+| 변수 매핑 (#{변수}→DE컬럼) | `FirstName→FirstName; phone→Phone` | `inArguments`의 각 키 = `{{Event.<EventDefKey>.<DE컬럼>}}` |
+
+> 진입 DE GUID는 `§data_extension_id§`에 넣음. micrm 엔드포인트: `https://sales.micrm.co.kr/sf/06/` 하위 `execute / save / validate / publish / stop / unpublish / testSave .service`.
+
+### 템플릿 목록 조회 (`atTmplLst`)
+
+- `POST https://sales.micrm.co.kr/sf/06/kko/atTmplLst.ajax` — 인증은 **micrm 웹세션**(`JSESSIONID` + `X-Csrf-Token` + `X-Requested-With: XMLHttpRequest`), SFMC JWT 아님.
+- 폼 파라미터: `send_key`(카카오 채널 키) · `pageNo` · `kep_status`(`O`=승인) · `_csrf`.
+- 응답 HTML의 `<input name="tmpl_seq">`가 **seq**, `<input name="tmpl_cd" data="템플릿명">`가 템플릿코드·이름.
+
+### 참고 — 현재 연결 BU 값 (⚠️ BU마다 다름)
+
+| 항목 | 현재 BU(`mc82m0sycp8ynx4fqynw-63lx470`, 2026-06-24) | 확인 방법 |
+|---|---|---|
+| applicationExtensionKey | `ac710353-5af5-4d5a-a510-179c2c5e840d` | 알림톡 저니 REST 액티비티의 `configurationArguments` |
+| 연결 채널 / send_key | 밀버스 / `bec993a052e5a19c9e9bcbb32412b19341be2449` | JB 커스텀 액티비티 → 발신 프로필 |
+
+> 값 `8b27e59c-…`은 다른 BU 값입니다. 새 BU에서는 위 "확인 방법"으로 다시 얻으세요(하드코딩 금지).
+
+---
+
 ## Slack 연동 (Slack에서 봇으로 조종)
 
 Slack 메시지로 이 캠페인 에이전트를 직접 조종할 수 있습니다. `slack-bridge/`가 Slack 메시지를 받아 **이 PC의 Claude Code(CLI)** 로 처리하고 결과를 회신합니다. **Socket Mode**를 쓰므로 공개 IP·포트개방·터널이 필요 없고, 이 PC가 켜져 있기만 하면 동작합니다.

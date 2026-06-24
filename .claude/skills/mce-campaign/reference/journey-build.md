@@ -177,7 +177,7 @@ REST 커스텀 액티비티는 `activities` 배열에 아래 형태의 객체를
     }
   },
   "configurationArguments": {
-    "applicationExtensionKey": "8b27e59c-8fb0-4b83-92b4-550aa7a7a490",
+    "applicationExtensionKey": "ac710353-5af5-4d5a-a510-179c2c5e840d",
     "save":      { "url": "https://sales.micrm.co.kr/sf/06/save.service" },
     "validate":  { "url": "https://sales.micrm.co.kr/sf/06/validate.service" },
     "publish":   { "url": "https://sales.micrm.co.kr/sf/06/publish.service" },
@@ -191,12 +191,14 @@ REST 커스텀 액티비티는 `activities` 배열에 아래 형태의 객체를
 
 핵심 규칙:
 - `type`은 반드시 **`REST`** (커스텀 액티비티). `category`는 `"message"`.
-- `applicationExtensionKey`는 **해당 SFMC 계정 Installed Packages에 등록된 커스텀 액티비티 패키지 키**를 가리킨다. 위 값(`8b27e59c-…`)은 현재 BU(`Salesforce_milvus_edu`) 운영 저니에서 확인된 값이다. **다른 BU/계정에서는 그 계정의 키로 바꾼다.** (옛 계정 값 `ac710353-…`은 더 이상 쓰지 않는다.)
-- ⭐ **`seq`는 반드시 채운다 — 누락 시 액티비티 내용이 비어버린다.** `seq` = 보낼 **알림톡 템플릿의 `tmpl_seq`** (micrm 템플릿 식별자). 이 값이 없으면 액티비티가 껍데기로 생성된다(요건2 핵심). 템플릿 목록·`tmpl_seq` 확보 방법은 README "커스텀 액티비티(알림톡/카카오) 콘텐츠 연동" 절(`atTmplLst` API)을 따른다.
+- ⚠️ `applicationExtensionKey`는 **BU마다 다르다 — 하드코딩 금지.** 그 BU Installed Packages에 등록된 커스텀 액티비티 패키지 키이며, **작업 전 현재 BU에서 확인**한다(그 BU의 알림톡 저니를 `sfmc_get_journey`로 읽어 `configurationArguments.applicationExtensionKey` 확인, 또는 Setup → Installed Packages). 위 예시 `ac710353-…`은 현재 BU(`mc82m0sycp8ynx4fqynw-63lx470`) 값(2026-06-24 확인). 값 `8b27e59c-…`은 *다른 BU* 값이니 혼용하지 말 것(둘 다 유효, 단 BU별로).
+- ⭐ **`seq`는 반드시 채운다 — 누락 시 액티비티 내용이 비어버린다.** `seq` = 보낼 **알림톡 템플릿의 `tmpl_seq`** (micrm 템플릿 식별자, 페이로드엔 **문자열**로 넣는다 예 `"5311"`). 이 값이 없으면 액티비티가 껍데기로 생성된다(요건2 핵심).
+- ⭐ **`seq`는 반드시 "이 BU 커스텀 액티비티가 연결된 micrm 채널"의 템플릿이어야 한다.** 다른 채널의 seq를 넣으면 JB UI에서 **"사용할 수 없는 콘텐츠"** 로 뜨고 동작하지 않는다. 연결 채널의 `send_key`는 JB에서 커스텀 액티비티를 열어 **발신 프로필**(`@채널명(send_key)`)에서 확인한다. 그 `send_key`로 `atTmplLst` 카탈로그를 조회해 캠페인 의도에 맞는 seq를 고른다. 템플릿 목록 확보 방법은 README "커스텀 액티비티(알림톡/카카오) 콘텐츠 연동" 절(`atTmplLst` API) 참조. (micrm 카탈로그 조회는 웹세션이 필요하므로 **하위 워커가 아니라 오케스트레이터가 브라우저로 수행**해 seq를 워커에 전달한다.)
 - `arguments.execute.url` 및 `configurationArguments`의 6개 엔드포인트(`save/validate/publish/stop/unpublish/testSave`)는 외부 발송 서비스(micrm) URL이다.
 - `inArguments`의 속성 바인딩 키(`{{Event.<EventDefinitionKey>.속성}}`)는 **진입 Event Definition Key와 정확히 일치**해야 한다. 템플릿 본문의 카카오 변수(`[#{변수명}]`)가 있으면 그에 대응하는 진입 DE 컬럼을 `inArguments`에 함께 바인딩한다.
-- `§extention_cnt§`, `§data_extension_id§`는 서버 측 치환 토큰이므로 그대로 둔다. `§data_extension_id§` 값에는 진입 DE의 GUID를 넣는다. (`§extention_cnt§`는 콘텐츠에 따라 다르며 실측 저니 기준 `1`)
+- `§extention_cnt§`, `§data_extension_id§`는 서버 측 치환 토큰이므로 그대로 둔다. `§data_extension_id§` 값에는 진입 DE의 GUID를 넣는다. (`§extention_cnt§`는 콘텐츠마다 다르며 실측상 `0`/`1`/`2`/`100` 등 제각각 — 고정값 아님, 일단 `0` 사용 가능.)
 - `metaData.isConfigured: true` 필수 (없으면 UI에서 "미설정" 상태로 표시됨).
+- 저니 종료는 마지막 액티비티 뒤 JB가 자동으로 "Exit Journey"를 그리므로 **별도 `ContactExit` 액티비티를 명시할 필요 없다**(넣으면 캔버스에 빈 "Exit" 박스가 중복으로 보임). 마지막 액티비티의 `outcomes`에서 `next`를 비우면 종료로 연결된다.
 - 검증 출처: 현재 BU의 알림톡 저니(`알림톡 추적링크 테스트`, `알림톡 테스트_mika`) — 위 구조(키 `8b27e59c`, `tmpl_seq` 포함)로 정상 동작 확인됨.
 
 ```
