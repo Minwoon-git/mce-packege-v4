@@ -78,7 +78,7 @@
 - 하위가 반환한 결과(후보 목록·정의서 경로·Journey ID 등)는 상위가 보관하여 다음 하위 호출의 입력으로 넘긴다.
 - **정의서를 사용자가 직접 첨부**한 경우 STEP 1·2를 건너뛰고 곧바로 `mce-journey-agent`(STEP 3)만 호출한다.
 - **읽기 전용 조회**(저니/DE/이메일 목록 등)는 위임하지 않고 **상위 에이전트가 직접** SFMC MCP를 호출해 답한다(아래 전역 규칙).
-- **📨 메시지 채널이 알림톡/문자/카카오/SMS이면** STEP 2 위임 전에 상위가 **"채널 해소(seq 확보)"** 를 직접 수행한다: ① 현재 BU 알림톡 저니에서 `applicationExtensionKey`·`send_key` 확인 → ② `send_key`로 micrm `atTmplLst` 카탈로그를 **브라우저(Claude in Chrome)** 로 조회 → ③ seq 선택(자동=의도매칭/수동=후보제시) → ④ 변수↔DE 매핑. 이 값(seq·키·변수매핑)을 planning 워커에 넘겨 정의서에 기록하게 한다. **워커는 micrm 웹세션에 접근 못 하므로 seq 조회를 위임하지 않는다.** (상세: `mce-campaign` 스킬 "메시지 채널 해소" 절 + `reference/journey-build.md` ④)
+- **📨 메시지 채널이 알림톡/문자/카카오/SMS이면** STEP 2 위임 전에 상위가 **"채널 해소(seq 확보)"** 를 직접 수행한다: ① 현재 BU 알림톡 저니에서 `applicationExtensionKey`·`send_key` 확인 → ② `send_key`로 micrm **`mobileList.ajax`(모바일 컨텐츠 목록)** 를 **브라우저(Claude in Chrome)** 로 조회 → ③ seq 선택(자동=의도매칭/수동=후보제시. **저니에 넣는 seq=모바일 컨텐츠 seq**, `atTmplLst`의 알림톡 템플릿 id 아님) → ④ 변수↔DE 매핑. 이 값(seq·키·변수매핑)을 planning 워커에 넘겨 정의서에 기록하게 한다. **워커는 micrm 웹세션에 접근 못 하므로 seq 조회를 위임하지 않는다.** (상세: `mce-campaign` 스킬 "메시지 채널 해소" 절 + `reference/journey-build.md` ④)
 
 > 자동 모드에서는 위 세 위임을 **무발화로 연속 실행**하고 맨 마지막에 STEP 4 결과만 1회 출력한다.
 

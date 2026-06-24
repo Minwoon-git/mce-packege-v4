@@ -67,8 +67,8 @@ Plan의 분기 기준 속성은 **실제 DE에 존재하는 필드**를 사용�
 | 단계 (Step) | 순서 (1, 2, 3-A, 3-B ...) |
 | 컴포넌트 유형 | Entry Source / Message (Email) / Message (알림톡/문자/카카오/SMS) / Wait / Decision Split / Engagement Split / Wait & Exit 등 |
 | 상세 설정 조건 / 분기 로직 (Criteria & Path) | 컴포넌트별 세부 조건 및 분기 경로 |
-| 연결 콘텐츠 명칭 (Email Name / 알림톡 템플릿명) | 이메일=Content Builder 에셋명 / 알림톡=micrm 템플릿명 |
-| 연결 콘텐츠 ID (Email ID / 알림톡 seq) | 이메일=Content Builder legacyId / 알림톡=micrm `tmpl_seq`(문자열) |
+| 연결 콘텐츠 명칭 (Email Name / 알림톡 컨텐츠명) | 이메일=Content Builder 에셋명 / 알림톡=micrm 모바일 컨텐츠명 |
+| 연결 콘텐츠 ID (Email ID / 알림톡 seq) | 이메일=Content Builder legacyId / 알림톡=micrm **모바일 컨텐츠 seq**(문자열, 예 `5311`. tmpl_seq 아님) |
 | 대기 기간 (Wait) | 대기 시간 (예: 3 Days, 1 Day) |
 | 고객 재진입 설정 (Contact Re-entry) | No re-entry / Re-entry only after exiting / Re-entry at any time |
 | Schedule Flow Mode | Recurring (반복) 또는 빈값 (On Activation — 발행 시 1회) |

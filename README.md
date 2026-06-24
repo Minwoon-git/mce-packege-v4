@@ -261,8 +261,8 @@ STEP1 topic-agent  →  캠페인 후보
    │
    ★채널 해소 (오케스트레이터, 브라우저)        ← 알림톡/문자일 때만
    │   ① BU 알림톡 저니에서 applicationExtensionKey·send_key 확인
-   │   ② send_key로 atTmplLst 카탈로그 조회
-   │   ③ seq 선택 (자동=의도매칭 / 수동=후보제시)
+   │   ② send_key로 mobileList(모바일 컨텐츠) 목록 조회
+   │   ③ seq 선택 (모바일 컨텐츠 seq. 자동=의도매칭 / 수동=후보제시)
    │   ④ 템플릿 변수 #{…} → 진입 DE 컬럼 매핑
    ▼
 STEP2 planning-agent → 정의서에 seq·키·변수매핑 기록   (micrm 접근 X)
@@ -276,14 +276,14 @@ STEP3 journey-agent  → 정의서 값으로 REST 액티비티 생성  (micrm �
 
 1. **현재 BU 확인** — MCP 연결 BU 조회. 알림톡 커스텀 액티비티가 그 BU에 설치돼 있어야 동작.
 2. **키·채널 확보** — 그 BU 기존 알림톡 저니를 `sfmc_get_journey`로 읽어 ① `configurationArguments.applicationExtensionKey` ② 발신 프로필 `send_key`(JB 액티비티 열기 → `@채널명(send_key)`) 확인.
-3. **seq 고르기** — 위 `send_key`로 `atTmplLst` 카탈로그 조회(브라우저) → 캠페인 의도에 맞는 `tmpl_seq` 선택.
+3. **seq 고르기** — 위 `send_key`로 **`mobileList.ajax`(모바일 컨텐츠 목록)** 조회(브라우저) → 캠페인 의도에 맞는 **모바일 컨텐츠 seq**(예 5311) 선택. (⚠️ `atTmplLst`의 알림톡 템플릿 id가 아님)
 4. **저니 생성** — `body_json`에 REST 액티비티 추가: `inArguments`에 `seq`(문자열)+DE 필드 바인딩, `configurationArguments.applicationExtensionKey`=그 BU 키.
 5. **확인** — Draft로 두고 JB UI에서 템플릿 정상 로드 확인 → 필요 시 발행.
 
 ### ⚠️ 유의점 (자주 막히는 곳)
 
 - **`applicationExtensionKey`는 BU마다 다름** → 하드코딩 금지, 매번 현재 BU에서 확인.
-- **`seq`는 "연결 채널"의 템플릿이어야 함** → 다른 채널 seq를 넣으면 JB UI에서 **"사용할 수 없는 콘텐츠"**.
+- **`seq`는 "연결 채널"의 모바일 컨텐츠여야 함** → 다른 채널이거나 알림톡 템플릿 id(tmpl_seq)를 넣으면 JB UI에서 **"사용할 수 없는 콘텐츠"**.
 - **`seq` 누락 = 빈 껍데기 액티비티** (콘텐츠가 안 채워짐).
 - **`seq`는 문자열**로 넣음(예 `"5311"`). `§extention_cnt§`는 콘텐츠마다 다름(실측 `0`도 정상).
 - **카탈로그 조회는 micrm 웹세션 필요** → 워커가 아니라 **오케스트레이터가 브라우저로** 확정해 전달.
@@ -296,17 +296,24 @@ STEP3 journey-agent  → 정의서 값으로 REST 액티비티 생성  (micrm �
 | 정의서 컬럼 | 값(예) | REST 매핑 |
 |---|---|---|
 | 컴포넌트 유형 | `Message (알림톡/문자/카카오/SMS)` | `type: "REST"` |
-| 연결 콘텐츠 ID (… 알림톡 seq) | `5311` | `arguments.execute.inArguments[].seq`(문자열) |
+| 연결 콘텐츠 ID (… 알림톡 seq) | `5311` (모바일 컨텐츠 seq) | `arguments.execute.inArguments[].seq`(문자열) |
 | applicationExtensionKey (알림톡/문자) | `ac710353-…` | `configurationArguments.applicationExtensionKey` |
 | 변수 매핑 (#{변수}→DE컬럼) | `FirstName→FirstName; phone→Phone` | `inArguments`의 각 키 = `{{Event.<EventDefKey>.<DE컬럼>}}` |
 
 > 진입 DE GUID는 `§data_extension_id§`에 넣음. micrm 엔드포인트: `https://sales.micrm.co.kr/sf/06/` 하위 `execute / save / validate / publish / stop / unpublish / testSave .service`.
 
-### 템플릿 목록 조회 (`atTmplLst`)
+### 목록 조회 API — 두 종류 구분이 핵심
 
-- `POST https://sales.micrm.co.kr/sf/06/kko/atTmplLst.ajax` — 인증은 **micrm 웹세션**(`JSESSIONID` + `X-Csrf-Token` + `X-Requested-With: XMLHttpRequest`), SFMC JWT 아님.
-- 폼 파라미터: `send_key`(카카오 채널 키) · `pageNo` · `kep_status`(`O`=승인) · `_csrf`.
-- 응답 HTML의 `<input name="tmpl_seq">`가 **seq**, `<input name="tmpl_cd" data="템플릿명">`가 템플릿코드·이름.
+micrm엔 두 목록이 있고, **저니 seq는 "모바일 컨텐츠"에서 온다.** (알림톡 템플릿이 아님)
+
+| 목록 | API | id(=화면 표기) | 저니 seq? |
+|---|---|---|---|
+| **모바일 컨텐츠** (템플릿+캠페인/수신정보 포장한 발송 단위) | **`POST /sf/06/mobileList.ajax`** | `<input name="list" value="5311">` | ✅ **이 seq를 `inArguments.seq`에 넣음** |
+| 알림톡 템플릿 (카카오 승인 양식) | `POST /sf/06/kko/atTmplLst.ajax` | `<input name="tmpl_seq" value="1778">` | ❌ (모바일 컨텐츠 만들 때 안에 넣는 재료) |
+
+- 공통 인증: **micrm 웹세션**(`JSESSIONID` + 헤더 `X-Csrf-Token` + `X-Requested-With: XMLHttpRequest`), SFMC JWT 아님.
+- 공통 폼 파라미터: `send_key`(채널 키) · `pageNo` · `_csrf` (atTmplLst는 `kep_status=O`(승인) 추가).
+- 비유: 알림톡 템플릿=레시피, 모바일 컨텐츠=그 레시피로 포장 끝낸 도시락. 저니엔 **도시락 번호(모바일 컨텐츠 seq)** 를 넣는다.
 
 ### 참고 — 현재 연결 BU 값 (⚠️ BU마다 다름)
 
