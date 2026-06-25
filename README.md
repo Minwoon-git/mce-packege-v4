@@ -280,8 +280,8 @@ STEP1 topic-agent  →  캠페인 후보
    │
    ★채널 해소 (오케스트레이터, 브라우저)        ← 알림톡/문자일 때만
    │   ① BU 알림톡 저니에서 applicationExtensionKey·send_key 확인
-   │   ② send_key로 mobileList(모바일 컨텐츠) 목록 조회
-   │   ③ seq 선택 (모바일 컨텐츠 seq. 자동=의도매칭 / 수동=후보제시)
+   │   ② send_key로 mobileList(모바일 컨텐츠) 목록 조회 → 클라이언트 이름 필터(서버검색 X)
+   │   ③ seq 선택 (모바일 컨텐츠 seq. 자동=이름매칭+임계치 / 수동=후보제시)
    │   ④ 템플릿 변수 #{…} → 진입 DE 컬럼 매핑
    ▼
 STEP2 planning-agent → 정의서에 seq·키·변수매핑 기록   (micrm 접근 X)
@@ -295,7 +295,7 @@ STEP3 journey-agent  → 정의서 값으로 REST 액티비티 생성  (micrm �
 
 1. **현재 BU 확인** — MCP 연결 BU 조회. 알림톡 커스텀 액티비티가 그 BU에 설치돼 있어야 동작.
 2. **키·채널 확보** — 그 BU 기존 알림톡 저니를 `sfmc_get_journey`로 읽어 ① `configurationArguments.applicationExtensionKey` ② 발신 프로필 `send_key`(JB 액티비티 열기 → `@채널명(send_key)`) 확인.
-3. **seq 고르기** — 위 `send_key`로 **`mobileList.ajax`(모바일 컨텐츠 목록)** 조회(브라우저) → 캠페인 의도에 맞는 **모바일 컨텐츠 seq**(예 5311) 선택. (⚠️ `atTmplLst`의 알림톡 템플릿 id가 아님)
+3. **seq 고르기** — 위 `send_key`로 **`mobileList.ajax`(모바일 컨텐츠 목록)** 조회(브라우저) → 목록이 200건+이고 서버검색이 안 먹으니 **클라이언트에서 이름 필터** 후 캠페인 의도에 맞는 **모바일 컨텐츠 seq**(예 5311) 선택(자동=이름매칭+임계치, 수동=후보제시). (⚠️ `atTmplLst`의 알림톡 템플릿 id가 아님)
 4. **저니 생성** — `body_json`에 REST 액티비티 추가: `inArguments`에 `seq`(문자열)+DE 필드 바인딩, `configurationArguments.applicationExtensionKey`=그 BU 키.
 5. **확인** — Draft로 두고 JB UI에서 템플릿 정상 로드 확인 → 필요 시 발행.
 
@@ -330,9 +330,13 @@ micrm엔 두 목록이 있고, **저니 seq는 "모바일 컨텐츠"에서 온�
 | **모바일 컨텐츠** (템플릿+캠페인/수신정보 포장한 발송 단위) | **`POST /sf/06/mobileList.ajax`** | `<input name="list" value="5311">` | ✅ **이 seq를 `inArguments.seq`에 넣음** |
 | 알림톡 템플릿 (카카오 승인 양식) | `POST /sf/06/kko/atTmplLst.ajax` | `<input name="tmpl_seq" value="1778">` | ❌ (모바일 컨텐츠 만들 때 안에 넣는 재료) |
 
-- 공통 인증: **micrm 웹세션**(`JSESSIONID` + 헤더 `X-Csrf-Token` + `X-Requested-With: XMLHttpRequest`), SFMC JWT 아님.
+- 공통 인증: **micrm 웹세션**(세션 쿠키 + 헤더 `X-CSRF-TOKEN` + `X-Requested-With: XMLHttpRequest` + 폼 `_csrf`), SFMC JWT 아님.
 - 공통 폼 파라미터: `send_key`(채널 키) · `pageNo` · `_csrf` (atTmplLst는 `kep_status=O`(승인) 추가).
 - 비유: 알림톡 템플릿=레시피, 모바일 컨텐츠=그 레시피로 포장 끝낸 도시락. 저니엔 **도시락 번호(모바일 컨텐츠 seq)** 를 넣는다.
+- 🔧 **두 목록을 한 번에 불러오는 검증된 재사용 스니펫**(Claude in Chrome `javascript_tool`용)은 [`micrm-catalog.md`](.claude/skills/mce-campaign/reference/micrm-catalog.md) 가 SSOT다. `https://sales.micrm.co.kr/*` 로그인 탭에서 실행 → `{ mobile:[{seq,name}], tmpl:[{tmpl_seq,name}] }` 반환.
+- 📏 **페이지당 4건 고정, seq 내림차순(최신 먼저)**, `pageNo`로 순회. 모바일 컨텐츠는 **현재 BU 200건+**(알림톡 템플릿은 11건).
+- 🔎 **서버 검색이 안 먹는다 (2026-06-25 확인)** — `searchValue`를 보내도 무시하고 최신순 전체만 반환. **이름 필터는 클라이언트 측**에서 한다(스니펫의 `KEYWORD`). 기본은 최신 N페이지만, 못 찾으면 전수 순회.
+- 🤖 **seq 선택** — 수동=의도 키워드로 필터한 후보를 제시해 사용자가 선택 / 자동=**이름매칭+확신 임계치(전략 A)**, 확신 낮으면 임의선택 금지하고 그 1건만 사용자에게 질문. 상세 [`micrm-catalog.md`](.claude/skills/mce-campaign/reference/micrm-catalog.md) "자동 모드 seq 선택 전략".
 
 #### ⛔ 알림톡 템플릿(tmpl_seq)을 저니에 직접 넣으면 안 된다 (테스트로 확정)
 
