@@ -127,12 +127,31 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 | 갈래 | 입력 예 | 출력 |
 |------|---------|------|
-| **리스트업 (의도 없음)** | "생성 가능한 캠페인 리스트 업", "어떤 캠페인 만들 수 있어?" | 가능 캠페인 목록(캠페인명 + 신호 컬럼)을 번호로 제시 |
-| **의도 포함** | "신규회원 캠페인 만들어줘", "장바구니 캠페인" | 해당 의도의 복잡도별 상세 후보 표(활용 신호·추천 Journey 유형, 2~5개) |
+| **리스트업 (의도 없음)** | "생성 가능한 캠페인 리스트 업", "어떤 캠페인 만들 수 있어?" | **고객 데이터 진단표**(지표·인원·비율·추천 캠페인) + 비율 높은 순 추천 목록 |
+| **의도 포함** | "신규회원 캠페인 만들어줘", "장바구니 캠페인" | 해당 신호의 상세 후보 표(복잡도 단순→복합, 2~5개) |
 
-> 리스트업으로 가능 캠페인 목록을 먼저 본 뒤 특정 캠페인을 지목하면 자동으로 의도 갈래(상세 후보 표)로 전환됩니다.
+> 리스트업으로 진단 결과를 먼저 본 뒤 특정 캠페인을 지목하면 자동으로 의도 갈래(상세 후보 표)로 전환됩니다.
 
 > 사용자가 정의서(xlsx/CSV/Google Sheets)를 **직접 첨부**한 경우 STEP 1·2를 건너뛰고 STEP 3으로 바로 이동합니다.
+
+#### STEP 1 — 고객 데이터 진단 기반 추천 (3차원)
+
+필드(스키마) 존재만 보고 추천하는 1차원 방식이 아니라, **`Customer_Profile`의 실제 데이터 값을 집계**해 비중이 두드러진 지점을 찾고 **그에 맞는 캠페인을 비율 높은 순으로 추천**합니다.
+
+- **사전 집계**: 매일 새벽 Automation `CP_DIAGNOSIS_AUTOMATION`(03:00 KST)이 세그먼트별 `SEG_*` 카운트 DE(member_id 1컬럼, 비-sendable)에 인원을 미리 집계합니다. 추천 시엔 그 **`rowCount`만 읽어 즉시** 진단합니다(집계 대기 없음).
+- **진단 지표 6종**: 1회성 구매자 · 이탈위험(주문 90일+) · 휴면(로그인 90일+) · 첫구매 미전환 · 장바구니 이탈 · 마케팅 미동의. (기준선·룰셋은 [`reference/de-and-folders.md`](.claude/skills/mce-campaign/reference/de-and-folders.md), 고객사별 조정 가능)
+- **출력**: 지표·인원·비율·추천 캠페인만(별도 "약점/주목" 컬럼 없이), 비율 높은 순.
+- **발송(진입) DE는 캠페인 선택 후 생성** — 세그먼트 조건 + 채널 동의 필터(이메일 `email_consent`, SMS/알림톡 `sms_consent`)를 적용. 실제 발송 인원 = 세그먼트 ∩ 동의(진단 인원보다 작음).
+
+```
+고객 데이터 분석 (모수 N명)
+지표                 | 인원   | 비율 | 추천 캠페인
+1회성 구매자          | 6,400 | 64% | 2차 구매 유도
+휴면 (로그인 90일+)   | 3,500 | 35% | 휴면 고객 재활성화
+이탈위험 (주문 90일+) | 2,528 | 32% | 이탈 고객 재구매 유도
+```
+
+> ⚠️ 진단은 sf-mce의 **`rowCount`(메타) 읽기**로만 한다 — sf-mce엔 DE 행 값 일괄읽기 도구가 없다(단건 PK 조회는 SQL/import 행을 404). 그래서 "세그먼트 인원 = 카운트 DE 행 수"로 인코딩해 rowCount를 읽는다. 즉석 집계(추천 때마다 SQL 실행)는 매번 1~2분 대기·비동기 0 오판으로 불안정해 쓰지 않고, 새벽 사전 집계분을 읽는다.
 
 **실행 모드 (STEP 2부터 적용)**
 - **수동(Manual)**: Plan 구성을 사용자와 대화로 합의한 뒤 정의서/Journey 생성, 생성 전 승인.
@@ -143,7 +162,7 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 - **오류 자기 학습**: 캠페인 생성 중 오류가 발생해 수정/우회하면, 그 원인·해결책을 `.claude/skills/mce-campaign/reference/error-log.md`의 오류 학습 표에 즉시 추가하여 다음 캠페인 생성 시 같은 오류를 반복하지 않습니다.
 
 **공통 기능:**
-- 연결된 DE/필드 분석 기반 캠페인 추천
+- 고객 데이터(`Customer_Profile`) **값 진단** 기반 캠페인 추천 (3차원 — 위 STEP 1 참고)
 - CSV/XLSX/Google Sheets 정의서 파싱 및 MCE 컴포넌트 자동 생성
 - Journey Builder 다단계 플로우(Decision/Engagement Split, Wait, Email) 구성
 - Event Definition + Automation 스케줄(Recurring/On Activation) 설정
@@ -174,7 +193,7 @@ npm install exceljs
 (주제 선정 → 후보 추천 → 모드 선택 → 정의서 생성 → Journey 생성 → 결과 보고)
 
 ```
-생성 가능한 캠페인 리스트 업           # 의도 없음 → 진입 DE 목록만 제시
+생성 가능한 캠페인 리스트 업           # 의도 없음 → 고객 데이터 진단 → 추천 캠페인 목록
 신규 회원을 위한 캠페인 생성          # 의도 포함 → 캠페인 상세 후보 표
 생일 고객을 위한 캠페인 만들어줘       # 후보 선택 → 모드(수동/자동) → 정의서 + Journey
 이탈 고객 캠페인 자동으로 만들어줘     # 자동 모드: STEP 1~4 무발화 일괄 생성
@@ -568,6 +587,7 @@ npm start   --prefix slack-bridge
 ├── generate_campaign_definition.js    # xlsx 정의서 생성 스크립트 (exceljs 의존)
 ├── package.json                       # 의존성 (exceljs 등)
 ├── campaign_definitions/              # 생성된 정의서 보관
+├── test_data/                         # 진단 테스트용 합성 데이터 (Customer_Profile 적재용 CSV + 생성 스크립트)
 ├── slack-bridge/                      # Slack ↔ Claude Code 브릿지 (Socket Mode)
 │   ├── bridge.js                      #   Assistant·멘션 처리·결과 변환·사용량 집계
 │   ├── run-bridge.cmd                 #   자동 실행/자동 재시작 런처 (시작프로그램용)

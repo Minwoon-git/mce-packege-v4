@@ -59,7 +59,7 @@
 ```
 사용자 한 문장
    │
-   ▼ (상위가 호출)  Agent → mce-topic-agent   ── STEP 1: DE 분석 → 캠페인 후보 목록 반환
+   ▼ (상위가 호출)  Agent → mce-topic-agent   ── STEP 1: 고객 데이터 진단(SEG_* 카운트 rowCount) → 추천 캠페인 목록 반환
    │
    ├─ [수동] 상위가 후보 표 제시 → 사용자 캠페인 선택(번호/추천) → 실행 모드 질문(AskUserQuestion)
    │        [자동] 상위가 의도에 맞는 후보 자동 선정
@@ -146,7 +146,7 @@
 
 | 하위 에이전트 | 담당 STEP | 역할 | 입력 (상위가 전달) | 반환 (상위가 수령) |
 |---|---|---|---|---|
-| [`mce-topic-agent`](.claude/agents/mce-topic-agent.md) | STEP 1 | DE/폴더 분석 → 캠페인 후보 추천 | 사용자 의도 한 문장 | 캠페인 후보 목록(또는 DE 목록) |
+| [`mce-topic-agent`](.claude/agents/mce-topic-agent.md) | STEP 1 | 고객 데이터 진단(Customer_Profile 값 집계 → 비율) → 추천 캠페인 | 사용자 의도 한 문장 | 진단표(지표·인원·비율·추천 캠페인) |
 | [`mce-planning-agent`](.claude/agents/mce-planning-agent.md) | STEP 2 | Plan 설계 + xlsx 정의서 생성 | 선택 캠페인·DE/필드·실행 모드·(수동 시)확정 Plan 값 | 정의서 파일 경로 + Plan 요약 |
 | [`mce-journey-agent`](.claude/agents/mce-journey-agent.md) | STEP 3 | 정의서 → SFMC Journey 생성(기본 Draft) | 정의서 경로/캠페인 ID·발행 여부 | Journey 이름·ID·상태·링크 |
 | [`mce-onboarding-agent`](.claude/agents/mce-onboarding-agent.md) | (온보딩) | 발송 인프라 read-only 점검 → 세팅 상태 분류 + 잔여 태스크·일정 가이드 | 점검 요청 | 세팅 점검 리포트(✅/⚠️/❌) + 워밍 일정 플랜 |

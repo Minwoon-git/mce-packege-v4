@@ -15,7 +15,8 @@ metadata:
 - **sendableCustomObjectField**: `member_id`
 - **sendableSubscriberField**: `_SubscriberKey`
 - **upsert pk_name**: `SubscriberKey` (sendable DE는 member_id가 PK로 인식 안 됨 — SubscriberKey 사용)
-- **행 수**: 30행 (cust1001~cust1030)
+- **행 수**: 10,000행 (2026-06-25 확인. 최신 rowCount 기준)
+- **categoryId 실제값**: 93897 (이전 메모 82564는 stale — 93897로 수정)
 
 ## 스키마 — 원천 사실값 컬럼 (23개 + SFMC 자동추가 SubscriberKey)
 
