@@ -456,3 +456,30 @@
 - 정의서: `campaign_definitions/CP_040_신규회원채널분기웰컴_20260621.xlsx`
 
 ---
+
+## 2026-06-22 장바구니 이탈 복합 분기
+- 캠페인 ID: CP_041
+- Journey 명: 장바구니이탈_등급x금액_복합분기Journey
+- Journey ID: bdca07ee-d29d-42e2-8a5d-f522f05ad247
+- 상태: 성공 (Draft / 미발행)
+
+## 2026-06-24 — CP_042 신규회원 웰컴 알림톡
+
+- Journey ID: `b0f5287c-ef26-45ea-a6a8-d64a0ea5b4f5`
+- Journey Key: `CP042-WelcomeAlimtalk-20260624`
+- Journey Name: `신규회원웰컴알림톡`
+- 상태: Draft (미발행)
+- 채널: 카카오 알림톡 (REST 커스텀 액티비티, seq 5311)
+- Entry DE: 신규회원_웰컴_알림톡 (`9019b35a-dc6f-f111-a5e1-5cba2c19fe48`)
+- Event Definition: `CP042-NewMemberWelcome-Entry-20260624` / Automation `35e95454-c145-418a-afa4-158811036a3d`
+- 스케줄: 매일 09:00 Recurring (시작 2026-07-01) / 재진입: No re-entry
+- 미완료: 진입 DE 데이터 적재 SQL Query Automation 연결 필요 (rowCount 0)
+- 정의서: `campaign_definitions/CP_042_신규회원웰컴알림톡_20260624.xlsx`
+
+---
+
+## 2026-06-25
+- 캠페인 ID: CP_043
+- Journey 명: 2차 구매 유도_장바구니x카테고리 복합분기Journey
+- Journey ID: 58edeaba-7d34-480d-8419-5b222b4e1854
+- 상태: 성공 (Draft / 미발행)
