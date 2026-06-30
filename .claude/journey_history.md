@@ -483,3 +483,9 @@
 - Journey 명: 2차 구매 유도_장바구니x카테고리 복합분기Journey
 - Journey ID: 58edeaba-7d34-480d-8419-5b222b4e1854
 - 상태: 성공 (Draft / 미발행)
+
+## 2026-06-26
+- 캠페인 ID: CP_044
+- Journey 명: 휴면 고객 재활성화 — 알림톡
+- Journey ID: b147884f-ddb3-4035-adef-51280a9c9b5a
+- 상태: 성공 (Draft / 미발행)

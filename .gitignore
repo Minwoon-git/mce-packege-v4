@@ -10,3 +10,6 @@ slack-bridge/.bridge-state.json
 
 # MCP 서버 엔드포인트 (테넌트별 URL — PC/계정마다 다름, 추적 안 함)
 .mcp.json
+
+# 대용량 샘플/테스트 데이터 (import용 — 추적 안 함)
+sample_customer_profile_*.csv

@@ -23,9 +23,16 @@ description: >
 >
 > 아래 STEP 1~4의 상세 절차·참조 데이터는 **상위·하위 에이전트 공통의 단일 출처(SSOT)** 다. 각 워커는 자기 STEP 절에 해당하는 규칙과 `reference/` 파일을 그대로 따른다.
 
+## 활성 고객사 온톨로지
+
+- **활성 고객사 = `ecommerce-default`** (일반 이커머스 기업 / 기본 템플릿) → 분석 소스·스키마·해석 규칙·기준선·세그먼트 값의 단일 출처는 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md).
+- 실제 고객사 확정 시 `reference/ontology/<고객사>.md` 를 만들고 이 줄의 활성 고객사만 바꾼다. 공통 방법론·에이전트·스크립트는 수정하지 않는다.
+
 ## 참조 파일 (필요 시점에 읽는다)
 
-- **진입 DE / 폴더 구조** → [`reference/de-and-folders.md`](reference/de-and-folders.md) — STEP 1에서 캠페인 후보를 읽을 때
+- **온톨로지 — 공통(방법)** → [`reference/ontology/_common.md`](reference/ontology/_common.md) — 진단 차원·아키타입·사전집계(`SEG_*`)·동의 원칙·폴더 fallback (STEP 1·2 공통)
+- **온톨로지 — 고객사(값)** → [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) — 분석 DE·스키마 매핑·해석 규칙·기준선·`SEG_*` 정의·진입 DE/폴더 (STEP 1·2)
+- **진입 DE / 폴더 구조 (온톨로지 진입점 요약)** → [`reference/de-and-folders.md`](reference/de-and-folders.md) — STEP 1에서 캠페인 후보를 읽을 때 (상세는 위 온톨로지 2파일)
 - **저니 페이로드 / 액티비티 규칙** → [`reference/journey-build.md`](reference/journey-build.md) — STEP 3에서 Journey 생성할 때
 - **이메일 콘텐츠 표준 / 샘플 이메일** → [`reference/email-standard.md`](reference/email-standard.md) — 이메일 에셋을 만들거나 고를 때
 - **SFMC 고정값(GUID 등)** → [`reference/fixed-values.md`](reference/fixed-values.md) — 저니 이메일 액티비티 구성 시
@@ -145,7 +152,7 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 | **A. 의도 없이 전체 (리스트업)** *(우선 갈래)* | "생성 가능한 캠페인 리스트 업", "어떤 캠페인 만들 수 있어?", "전체 보여줘", "캠페인 목록" 등 **특정 의도 키워드가 없는 포괄적 요청** | `Customer_Profile`(key `CD_Customer_Profile_DE`)을 **진단 집계** (진단 DE 요약본 ~15줄 또는 단일 집계 SQL/행 조회) | **진단 결과표(지표·비율·약점·추천) + 약점 우선순위 추천 캠페인 목록**을 제시 (진입 DE 나열·확정 대상자 추출 없음, → 1-4-A) |
 | **B. 의도 포함** | "신규 회원 캠페인 만들어줘", "이탈 고객 캠페인", "장바구니 캠페인" 등 **신규/이탈/장바구니/생일/쿠폰 등 의도 키워드 포함** | `Customer_Profile`의 해당 의도 지표 위주로 진단 | 해당 지표의 진단 비율을 근거로 한 **상세 후보 표** (복잡도 단순→복합 정렬, → 1-4-B) |
 
-> ⚠️ **갈래 A는 "캠페인"을 추천한다 — "진입 DE"를 나열하지 않는다.** `Customer_Profile`을 진단해 약점에 맞는 캠페인을 [`reference/de-and-folders.md`](reference/de-and-folders.md)의 "데이터 진단 기반 추천(3차원)" 룰셋 기준으로 제시한다. `Campaign_Package` 하위 진입 DE(`WELCOME_ENTRY_DE` 등)나 계정에 떠 있는 기존 진입 DE 목록을 긁어 나열하지 않는다. (진입 DE는 캠페인을 **고른 뒤** 1-6에서 Automation SQL Query로 생성한다.)
+> ⚠️ **갈래 A는 "캠페인"을 추천한다 — "진입 DE"를 나열하지 않는다.** `Customer_Profile`을 진단해 약점에 맞는 캠페인을 [`reference/ontology/_common.md`](reference/ontology/_common.md)의 진단 방법 + 활성 고객사 온톨로지([`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md))의 기준선·룰셋 기준으로 제시한다. `Campaign_Package` 하위 진입 DE(`WELCOME_ENTRY_DE` 등)나 계정에 떠 있는 기존 진입 DE 목록을 긁어 나열하지 않는다. (진입 DE는 캠페인을 **고른 뒤** 1-6에서 Automation SQL Query로 생성한다.)
 
 **판정 규칙:**
 - 의도 키워드(신규·가입·온보딩·웰컴 / 이탈·휴면·재활성화 / 장바구니·구매 / 생일·기념일 / 쿠폰·친구추가·프로모션 / 등급·멤버십)가 **하나도 없으면 → 갈래 A**.
@@ -158,19 +165,20 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 
 ## 1-1. 고객 데이터 진단 — `Customer_Profile` 을 집계한다 (먼저 수행)
 
-> 추천은 **고객 데이터 진단에 근거**한다(3차원). 분석 소스는 `Customer_Profile`(key `CD_Customer_Profile_DE`) 하나다.
-> 진단 지표 → 약점 기준 → 추천 룰셋, 진단 DE(요약본) 구조, fallback 절차는 [`reference/de-and-folders.md`](reference/de-and-folders.md)의 "데이터 진단 기반 추천(3차원)" 절에 정리돼 있다(SSOT).
+> 추천은 **고객 데이터 진단에 근거**한다(3차원). 분석 소스(활성 고객사 ecommerce-default = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 고객사 온톨로지에 지정돼 있다.
+> 진단 방법(차원·아키타입·사전집계·fallback)은 [`reference/ontology/_common.md`](reference/ontology/_common.md), 추천 룰셋·기준선·`SEG_*` 정의는 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md)가 SSOT다.
 
 `Customer_Profile`을 **집계 진단**한다 — 단순히 "컬럼이 있으니 가능"이 아니라, **실제 데이터 값으로 지표 비율을 내고 약점을 찾아 추천**한다.
-- **집계 경로(사전 집계, 대기 없음)**: 매일 새벽 Automation(`CP_DIAGNOSIS_AUTOMATION`)이 세그먼트별 `SEG_*` 카운트 DE(member_id 1컬럼, 비-sendable)에 미리 적재한다. 추천 시엔 각 `SEG_*` + 모수(`Customer_Profile`·`SEG_buyers_DE`)의 **`rowCount`만** `sfmc_get_data_extension`으로 읽어 비율을 낸다(행 값 안 읽음). 상세는 `reference/de-and-folders.md`의 "진단 카운트 DE — SEG_*". ⚠️ 즉석 집계는 매번 1~2분 대기·비동기 0 오판으로 불안정하니 하지 않는다.
-- 산출한 비율을 룰셋 기준선(이탈 25%·1회성 60%·휴면 30%·미전환 20%·장바구니 15%·미동의 50%)과 대조해 **비율 높은 순**으로 추천 순위를 정한다.
+- **집계 경로(사전 집계, 대기 없음)**: 매일 새벽 Automation(`CP_DIAGNOSIS_AUTOMATION`)이 세그먼트별 `SEG_*` 카운트 DE(member_id 1컬럼, 비-sendable)에 미리 적재한다. 추천 시엔 각 `SEG_*` + 모수(`Customer_Profile`·`SEG_buyers_DE`)의 **`rowCount`만** `sfmc_get_data_extension`으로 읽어 비율을 낸다(행 값 안 읽음). 읽기 패턴 상세는 [`reference/ontology/_common.md`](reference/ontology/_common.md) 3절, `SEG_*` 목록·조건은 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) 4절. ⚠️ 즉석 집계는 매번 1~2분 대기·비동기 0 오판으로 불안정하니 하지 않는다.
+  - **자동 구축**: `SEG_*`/Automation이 **없으면** Claude가 활성 고객사 온톨로지의 세그먼트 정의를 읽어 집계 SQL·DE·Automation을 **자동 생성**하고 1회 실행 후 읽는다([`reference/ontology/_common.md`](reference/ontology/_common.md) 6절). 이미 있으면 재생성하지 않는다(부하 방지). raw는 직접 읽지 않고 Contact Key 1컬럼 집계 쿼리만 만든다.
+- 산출한 비율을 활성 고객사 온톨로지의 룰셋 기준선(기본 템플릿: 이탈 25%·1회성 60%·휴면 30%·미전환 20%·장바구니 15%·미동의 50%)과 대조해 **비율 높은 순**으로 추천 순위를 정한다.
 - **발송(진입) DE는 진단 단계에서 만들지 않는다.** 캠페인을 고른 뒤 **1-6에서** 세그먼트 조건 + 채널 동의 필터를 적용해 생성한다(실제 발송 인원 = 세그먼트 ∩ 동의).
 - 갈래 A(리스트업)면 주요 지표 전체를 진단해 **약점 우선순위로** 추천 캠페인을 제시한다.
 - 갈래 B(의도 포함)면 해당 의도 지표 위주로 진단하고 복잡도 변형까지 후보로 만든다.
 
 ## 1-2. 캠페인 신호 매칭 (원천 컬럼 기준)
 
-`reference/de-and-folders.md`의 **원천 컬럼 → 추천 캠페인 + 판정 계산식 표**를 기준으로, Customer_Profile에 그 **원천 컬럼이 있는지**로 부합 캠페인을 식별한다. (신호는 Boolean 플래그가 아니라 원천 날짜·수치 컬럼이며, 대상 판정 계산식은 1-6에서 SQL로 평가한다.)
+활성 고객사 온톨로지([`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) 2절)의 **원천 컬럼 → 추천 캠페인 + 판정 계산식 표**를 기준으로, Customer_Profile에 그 **원천 컬럼이 있는지**로 부합 캠페인을 식별한다. (신호는 Boolean 플래그가 아니라 원천 날짜·수치 컬럼이며, 대상 판정 계산식은 1-6에서 SQL로 평가한다.)
 - 생일(`birthday`), 신규(`signup_date`), 휴면(`last_login_date`), 이탈위험(`last_order_date`), 장바구니(`has_abandoned_cart`/`cart_total_amount`), 쿠폰만료(`coupon_expire_date`/`unused_coupon_count`), 포인트만료(`points_expire_date`/`points_balance`), VIP(`grade`), 취향(`preferred_category`), 지역(`region`) 등.
 - ⚠️ 발송 동의 반영: 이메일 캠페인은 `email_consent=true`, SMS/알림톡은 `sms_consent=true`인 고객만 대상으로 규모를 집계한다.
 

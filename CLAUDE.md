@@ -32,7 +32,8 @@
 - 그 외 SFMC Journey Builder / Event Definition / Decision·Engagement Split 관련 작업
 
 스킬 본문: [`.claude/skills/mce-campaign/SKILL.md`](.claude/skills/mce-campaign/SKILL.md)
-참조 데이터: `.claude/skills/mce-campaign/reference/` (진입 DE·저니 페이로드·이메일 표준·고정값·오류 학습)
+참조 데이터: `.claude/skills/mce-campaign/reference/` (저니 페이로드·이메일 표준·고정값·오류 학습)
+**온톨로지(분석 기준 이원화)**: `reference/ontology/_common.md`(공통 방법) + `reference/ontology/ecommerce-default.md`(활성 고객사 값 — 일반 이커머스 기본 템플릿. 스키마·해석 규칙·기준선·`SEG_*`). 새 고객사는 `ontology/<고객사>.md` 한 개만 추가하고 SKILL.md의 "활성 고객사 온톨로지" 줄만 바꾼다.
 
 ---
 

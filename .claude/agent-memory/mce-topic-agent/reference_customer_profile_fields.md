@@ -8,15 +8,14 @@ metadata:
 ## Customer_Profile DE (무신사 BU, 2026-06-22 재구성)
 
 - **key**: `CD_Customer_Profile_DE`
-- **id (GUID)**: `0e7c0166-836d-f111-a5e1-5cba2c19fe48` (2026-06-22 삭제 후 재생성)
+- **id (GUID)**: `d64d8979-346d-f111-a5e1-5cba2c19fe48` (2026-06-30 재확인 — 이전 0e7c0166-... 는 stale)
 - **name**: `Customer_Profile`
-- **categoryId**: `82564` (Data Extensions 루트)
+- **categoryId**: `93869` (Customer Data 폴더)
 - **isSendable**: true
 - **sendableCustomObjectField**: `member_id`
 - **sendableSubscriberField**: `_SubscriberKey`
 - **upsert pk_name**: `SubscriberKey` (sendable DE는 member_id가 PK로 인식 안 됨 — SubscriberKey 사용)
-- **행 수**: 10,000행 (2026-06-25 확인. 최신 rowCount 기준)
-- **categoryId 실제값**: 93897 (이전 메모 82564는 stale — 93897로 수정)
+- **행 수**: 10,000행 (2026-06-30 확인. 최신 rowCount 기준)
 
 ## 스키마 — 원천 사실값 컬럼 (23개 + SFMC 자동추가 SubscriberKey)
 
