@@ -117,7 +117,7 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 ```
 사용자 입력 → 상위 에이전트(오케스트레이터)
-  → [STEP 1] 주제 선정   : mce-topic-agent   — Customer_Profile 신호 컬럼 분석 → 가능 캠페인 추천 → (상위가) 사용자 선택
+  → [STEP 1] 주제 선정   : mce-topic-agent   — 마스터 DE 프로파일링(온톨로지 기반) → 캠페인 추천 → (진단이면) 분석 리포트 자동 생성 → (상위가) 사용자 선택
   → [STEP 2] 모드 선택 + 기획 : mce-planning-agent — 수동/자동 선택 → Plan 설계 + xlsx 정의서 생성
   → [STEP 3] Journey 생성 : mce-journey-agent  — 정의서 기반 SFMC Journey 생성 (기본 Draft)
   → [STEP 4] 결과 보고     : 상위가 종합 보고
@@ -134,13 +134,14 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 > 사용자가 정의서(xlsx/CSV/Google Sheets)를 **직접 첨부**한 경우 STEP 1·2를 건너뛰고 STEP 3으로 바로 이동합니다.
 
-#### STEP 1 — 고객 데이터 진단 기반 추천 (3차원)
+#### STEP 1 — 데이터 기반 자율 추천 (온톨로지 + 프로파일링)
 
-필드(스키마) 존재만 보고 추천하는 1차원 방식이 아니라, **`Customer_Profile`의 실제 데이터 값을 집계**해 비중이 두드러진 지점을 찾고 **그에 맞는 캠페인을 비율 높은 순으로 추천**합니다.
+필드 존재만 보는 1차원이 아니라, **AI가 마스터 DE(`Customer_Profile`)를 프로파일링**(집계로 분포 파악)해 두드러진 지점을 찾고 **캠페인·기준선을 스스로 도출**합니다. 캠페인 목록·기준선을 문서에 하드코딩하지 않습니다.
 
-- **사전 집계**: 매일 새벽 Automation `CP_DIAGNOSIS_AUTOMATION`(03:00 KST)이 세그먼트별 `SEG_*` 카운트 DE(member_id 1컬럼, 비-sendable)에 인원을 미리 집계합니다. 추천 시엔 그 **`rowCount`만 읽어 즉시** 진단합니다(집계 대기 없음).
-- **진단 지표 6종**: 1회성 구매자 · 이탈위험(주문 90일+) · 휴면(로그인 90일+) · 첫구매 미전환 · 장바구니 이탈 · 마케팅 미동의. (기준선·룰셋은 [`reference/de-and-folders.md`](.claude/skills/mce-campaign/reference/de-and-folders.md), 고객사별 조정 가능)
-- **출력**: 지표·인원·비율·추천 캠페인만(별도 "약점/주목" 컬럼 없이), 비율 높은 순.
+- **온톨로지 2층 (MD = 의미 사전)**: 공통 방법([`ontology/_common.md`](.claude/skills/mce-campaign/reference/ontology/_common.md)) + 고객사 값([`ontology/ecommerce-default.md`](.claude/skills/mce-campaign/reference/ontology/ecommerce-default.md): §1 스키마 · §2 의미규칙(세금/포인트/동의) · §6 기획 · §7 전이 BU값). **AI는 §1·§2만 읽고** 어떤 세그먼트를 잴지, 어떤 캠페인을 추천할지, 기준선을 얼마로 볼지 **데이터를 보고 정합니다.** (§3·§4는 예시일 뿐)
+- **AI가 집계 쿼리 자동 생성**: 진단에 필요한 `SEG_*` 카운트 DE·SQL·Automation이 없으면 AI가 온톨로지 정의로부터 **직접 만들어** 적재합니다(부하 방지 위해 raw는 안 읽고 `rowCount`만 읽음). 낡으면(automation 멈춤·마스터 변경) **자동 재집계**합니다.
+- **출력**: 지표·인원·비율·추천 캠페인(비율 높은 순). 고정 임계값을 쓰면 "이 기준으로 가정함"을 밝힙니다.
+- **📄 분석 리포트 자동 생성 (D1)**: 리스트업/진단 직후, 진단 결과를 **문서형 HTML 리포트**로 자동 생성·게시하고 링크를 제시합니다(공통 틀 [`report-guide.md`](.claude/skills/mce-campaign/reference/report-guide.md) + `report-template.html`, 값은 고객사 진단·온톨로지 기준).
 - **발송(진입) DE는 캠페인 선택 후 생성** — 세그먼트 조건 + 채널 동의 필터(이메일 `email_consent`, SMS/알림톡 `sms_consent`)를 적용. 실제 발송 인원 = 세그먼트 ∩ 동의(진단 인원보다 작음).
 
 ```
@@ -591,6 +592,8 @@ npm start   --prefix slack-bridge
 ├── generate_campaign_definition.js    # xlsx 정의서 생성 스크립트 (exceljs 의존)
 ├── package.json                       # 의존성 (exceljs 등)
 ├── campaign_definitions/              # 생성된 정의서 보관
+├── docs/                              # 요건 정리 (requirements_YYYYMMDD.md)
+├── reports/                           # 생성된 분석 리포트 산출물 (html — gitignore, 템플릿은 reference/)
 ├── test_data/                         # 진단 테스트용 합성 데이터 (Customer_Profile 적재용 CSV + 생성 스크립트)
 ├── slack-bridge/                      # Slack ↔ Claude Code 브릿지 (Socket Mode)
 │   ├── bridge.js                      #   Assistant·멘션 처리·결과 변환·사용량 집계
@@ -606,7 +609,13 @@ npm start   --prefix slack-bridge
     │   ├── mce-planning-agent.md      # STEP 2 기획 / 정의서 생성 서브 에이전트
     │   └── mce-journey-agent.md       # STEP 3 Journey 생성 서브 에이전트
     ├── skills/
-    │   └── mce-campaign/              # 캠페인 생성 스킬 (STEP 1~4 + reference/)
+    │   └── mce-campaign/              # 캠페인 생성 스킬 (STEP 1~4)
+    │       └── reference/             #   온톨로지·저니 페이로드·리포트 가이드 등 SSOT
+    │           ├── ontology/          #     _common.md(공통 방법) + ecommerce-default.md(고객사 값)
+    │           ├── report-guide.md    #     분석 리포트(D1) 품질 기준
+    │           ├── report-template.html #   리포트 재사용 템플릿(디자인·구조)
+    │           ├── journey-build.md · email-standard.md · fixed-values.md · error-log.md · micrm-catalog.md
+    │           └── de-and-folders.md  #     온톨로지 진입점(요약)
     └── _backup_single_agent_20260621/ # 전환 전 단일 에이전트 버전 백업 (롤백용)
 ```
 
