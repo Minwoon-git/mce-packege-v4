@@ -62,6 +62,7 @@
    │
    ▼ (상위가 호출)  Agent → mce-topic-agent   ── STEP 1: 고객 데이터 진단(SEG_* 카운트 rowCount) → 추천 캠페인 목록 반환
    │
+   ├─ (리스트업/진단이면) 상위가 분석 리포트(HTML) 자동 생성 → Artifact 게시 → 링크 제시  [reference/report-guide.md]
    ├─ [수동] 상위가 후보 표 제시 → 사용자 캠페인 선택(번호/추천) → 실행 모드 질문(AskUserQuestion)
    │        [자동] 상위가 의도에 맞는 후보 자동 선정
    ▼ (상위가 호출)  Agent → mce-planning-agent ── STEP 2: 확정 입력으로 Plan + xlsx 정의서 생성 → 경로/요약 반환

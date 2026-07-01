@@ -37,6 +37,7 @@ description: >
 - **이메일 콘텐츠 표준 / 샘플 이메일** → [`reference/email-standard.md`](reference/email-standard.md) — 이메일 에셋을 만들거나 고를 때
 - **SFMC 고정값(GUID 등)** → [`reference/fixed-values.md`](reference/fixed-values.md) — 저니 이메일 액티비티 구성 시
 - **오류 학습 / 알려진 이슈** → [`reference/error-log.md`](reference/error-log.md) — STEP 3 시작 전 먼저 훑고, 새 오류 발생·해결 시 여기에 한 줄 추가
+- **분석 리포트 생성 가이드 (D1)** → [`reference/report-guide.md`](reference/report-guide.md) — 진단 결과를 고객 전달용 PPT 리포트로 만들 때(구조·내용·디자인·품질 체크리스트 SSOT)
 
 ## 시트 정보 (Google Sheets 정의서 입력 시)
 
@@ -68,6 +69,7 @@ description: >
    │
    ▼
 [STEP 1] 주제 선정  →  연결된 DE 분석 → 캠페인 후보 목록 추천
+   │        → (리스트업/진단이면) 분석 리포트(HTML) 자동 생성 → 링크 제시
    │        → 사용자가 만들 캠페인을 선택   (※ 모드와 무관, 항상 동일)
    │
    ├── (메시지 채널이 알림톡/문자/카카오/SMS인 경우만)
@@ -224,7 +226,7 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 - 집계가 불가하면(세션/권한 등) 그 사유를 밝히고, 부득이하면 컬럼 존재 기반 목록으로 폴백하되 "비율 미산출"임을 명시한다.
 - 사용자가 특정 캠페인을 지목하면 → **갈래 B(1-4-B)** 로 상세 후보를 좁히고, 선택 확정 후 **1-6(집계+진입 DE 생성)** 으로 간다.
 
-### 1-4-B. 갈래 B (의도 포함) — 통합 후보 표
+> 📄 **분석 리포트 자동 생성 (갈래 A 진단 직후)**: 리스트업/진단 결과가 나오면, [`reference/report-guide.md`](reference/report-guide.md)대로 **문서형 HTML 리포트**(`report-template.html` 복제 + 진단 데이터 주입)를 `reports/`에 생성하고 `Artifact`로 게시해 **링크를 후보 목록과 함께 제시**한다. 리포트엔 진단·기회 우선순위·핵심 캠페인 상세가 담긴다(구조·디자인은 공통, 값은 이번 진단·활성 고객사 온톨로지 기준). 캠페인 선택 전 단계다.
 
 사용자 의도와 분석한 DE/필드를 결합하여 **2~5개의 캠페인 후보**를 단일 표로 제시한다.
 

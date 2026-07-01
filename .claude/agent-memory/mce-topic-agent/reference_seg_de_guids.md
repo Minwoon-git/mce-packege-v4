@@ -20,11 +20,11 @@ metadata:
 - rowCount가 0이면 = Automation 미실행 또는 비동기 지연. **"데이터가 SQL 레이어에 없다"는 식으로 오판 금지** — 비동기 지연일 뿐이며, 90초 후 재조회하면 정상 적재됨.
 - **GUID는 하드코딩 금지.** SEG_*는 재생성되면 GUID가 바뀐다. `sfmc_get_data_extensions(query_json:{"$search":"SEG_"})`로 그때그때 GUID를 찾는다. `sfmc_get_data_extension`은 GUID(id)로만 조회된다(key 불가).
 
-## 운영 상수 (2026-06-30 갱신)
+## 운영 상수 (2026-07-01 갱신)
 
-- Customer_Profile: key `CD_Customer_Profile_DE`, GUID `d64d8979-346d-f111-a5e1-5cba2c19fe48`, 10,000행, 원천 23필드 sendable.
-- SQL Query 폴더: categoryId = **26296** (Query 루트). Automation 폴더: categoryId = **26294** (my automations 루트).
-- CP_DIAGNOSIS_AUTOMATION: id `681c5d4f-7c48-419c-b899-8d2b4dd7d0fd`, 매일 03:00 KST 스케줄.
+- Customer_Profile: key `CD_Customer_Profile_DE`, GUID `0e7c0166-836d-f111-a5e1-5cba2c19fe48`, 100,000행(2026-06-30 import), 원천 24필드 sendable. (이전 GUID d64d8979-...는 stale)
+- SQL Query 폴더: categoryId = **82567**. Automation 폴더: categoryId = **82571**.
+- CP_DIAGNOSIS_AUTOMATION: id `4e4ee6dd-88fa-4931-b34e-cdc831fe6b40`, key `CP_DIAGNOSIS_AUTOMATION`, **PausedSchedule** (스케줄 일시정지 상태), lastRunTime `2026-07-01T07:35:19` — 오늘 수동 실행됨, SEG_* 값 신선.
 - SFMC SQL Query/Automation은 비동기 — run 후 90초 대기 후 rowCount 재확인.
 
 ## 부트스트랩 이력 (2026-06-30 최초 구축)
@@ -40,22 +40,22 @@ SQL Query categoryId는 26296(Query 폴더 루트)이 유효 (이전 메모 8256
 - "약점/주목" 컬럼·단어 안 씀. **지표·인원·비율·추천 캠페인**만, 비율 높은 순.
 - 캠페인 명칭 풀어쓰기: 윈백→"이탈 고객 재구매 유도", 재활성화→"휴면 고객 재활성화", 미전환→"신규 첫구매 유도".
 
-## 2026-06-30 실측값 (모수 10,000 / 구매자 8,970)
+## 2026-07-01 실측값 (모수 100,000 / 구매자 85,059)
 
-repeat_buyer 6,378(71%/구매자) · churn 2,763(31%/구매자) · dormant 2,717(27%/전체) · noconv 1,030(10%/전체) · noconsent 1,359(14%/전체) · cart 971(10%/전체).
+repeat_buyer 55,034(64.7%/구매자) · churn 27,047(31.8%/구매자) · dormant 31,488(31.5%/전체) · noconv 14,941(14.9%/전체) · noconsent 19,893(19.9%/전체) · cart 18,149(18.1%/전체).
 
-## SEG_* DE GUID (2026-06-30 신규 생성)
+## SEG_* DE GUID (2026-07-01 라이브 확인)
 
-| DE key | GUID | rowCount(2026-06-30) |
+| DE key | GUID | rowCount(2026-07-01) |
 |---|---|---|
-| Customer_Profile(CD_Customer_Profile_DE) | d64d8979-346d-f111-a5e1-5cba2c19fe48 | 10,000 |
-| SEG_buyers_DE | fe102ee5-8e74-f111-a5e1-5cba2c19fe48 | 8,970 |
-| SEG_repeat_buyer_DE | 04112ee5-8e74-f111-a5e1-5cba2c19fe48 | 6,378 |
-| SEG_churn_DE | 0b112ee5-8e74-f111-a5e1-5cba2c19fe48 | 2,763 |
-| SEG_dormant_DE | 3b122ee5-8e74-f111-a5e1-5cba2c19fe48 | 2,717 |
-| SEG_noconv_DE | 151378eb-8e74-f111-a5e1-5cba2c19fe48 | 1,030 |
-| SEG_noconsent_DE | ea1378eb-8e74-f111-a5e1-5cba2c19fe48 | 1,359 |
-| SEG_cart_DE | 7d1378eb-8e74-f111-a5e1-5cba2c19fe48 | 971 |
+| Customer_Profile(CD_Customer_Profile_DE) | 0e7c0166-836d-f111-a5e1-5cba2c19fe48 | 100,000 |
+| SEG_buyers_DE | 509a6ca3-9f70-f111-a5e1-5cba2c19fe48 | 85,059 |
+| SEG_repeat_buyer_DE | e6996ca3-9f70-f111-a5e1-5cba2c19fe48 | 55,034 |
+| SEG_churn_DE | ef5563a9-9f70-f111-a5e1-5cba2c19fe48 | 27,047 |
+| SEG_dormant_DE | f95563a9-9f70-f111-a5e1-5cba2c19fe48 | 31,488 |
+| SEG_noconv_DE | 075663a9-9f70-f111-a5e1-5cba2c19fe48 | 14,941 |
+| SEG_noconsent_DE | 7d5663a9-9f70-f111-a5e1-5cba2c19fe48 | 19,893 |
+| SEG_cart_DE | 125663a9-9f70-f111-a5e1-5cba2c19fe48 | 18,149 |
 
 ## SQL Query ID (2026-06-30 생성)
 

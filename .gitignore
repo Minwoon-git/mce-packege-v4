@@ -13,3 +13,8 @@ slack-bridge/.bridge-state.json
 
 # 대용량 샘플/테스트 데이터 (import용 — 추적 안 함)
 sample_customer_profile_*.csv
+
+# 생성된 리포트 산출물 (per-run 출력 — 템플릿은 reference/report-template.html)
+reports/*.html
+reports/*.pptx
+reports/*.pdf
