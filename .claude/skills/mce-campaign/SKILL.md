@@ -25,13 +25,13 @@ description: >
 
 ## 활성 고객사 온톨로지
 
-- **활성 고객사 = `ecommerce-default`** (일반 이커머스 기업 / 기본 템플릿) → 분석 소스·스키마·해석 규칙·기준선·세그먼트 값의 단일 출처는 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md).
+- **활성 고객사 = `ecommerce-default`** (일반 이커머스 기업 / 기본 템플릿) → 이 BU의 값(스키마·의미규칙·진입DE·기획·전이 고정값) 단일 출처는 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md). 3개 에이전트가 각자 절을 읽는다(분석 §1·2, 기획 §6, 전이 §7).
 - 실제 고객사 확정 시 `reference/ontology/<고객사>.md` 를 만들고 이 줄의 활성 고객사만 바꾼다. 공통 방법론·에이전트·스크립트는 수정하지 않는다.
 
 ## 참조 파일 (필요 시점에 읽는다)
 
 - **온톨로지 — 공통(방법)** → [`reference/ontology/_common.md`](reference/ontology/_common.md) — 진단 차원·아키타입·사전집계(`SEG_*`)·동의 원칙·폴더 fallback (STEP 1·2 공통)
-- **온톨로지 — 고객사(값)** → [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) — 분석 DE·스키마 매핑·해석 규칙·기준선·`SEG_*` 정의·진입 DE/폴더 (STEP 1·2)
+- **온톨로지 — 고객사(값)** → [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) — §1 스키마·§2 의미규칙(분석) / §3·§4 예시·참고 / §5 진입 DE / §6 기획 / §7 전이 BU 고정값. (기준선·세그먼트는 고정 아님 — AI가 프로파일링해 도출)
 - **진입 DE / 폴더 구조 (온톨로지 진입점 요약)** → [`reference/de-and-folders.md`](reference/de-and-folders.md) — STEP 1에서 캠페인 후보를 읽을 때 (상세는 위 온톨로지 2파일)
 - **저니 페이로드 / 액티비티 규칙** → [`reference/journey-build.md`](reference/journey-build.md) — STEP 3에서 Journey 생성할 때
 - **이메일 콘텐츠 표준 / 샘플 이메일** → [`reference/email-standard.md`](reference/email-standard.md) — 이메일 에셋을 만들거나 고를 때
@@ -166,12 +166,12 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 ## 1-1. 고객 데이터 진단 — `Customer_Profile` 을 집계한다 (먼저 수행)
 
 > 추천은 **고객 데이터 진단에 근거**한다(3차원). 분석 소스(활성 고객사 ecommerce-default = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 고객사 온톨로지에 지정돼 있다.
-> 진단 방법(차원·아키타입·사전집계·fallback)은 [`reference/ontology/_common.md`](reference/ontology/_common.md), 추천 룰셋·기준선·`SEG_*` 정의는 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md)가 SSOT다.
+> 진단 방법(프로파일링→도출·사전집계·fallback)은 [`reference/ontology/_common.md`](reference/ontology/_common.md) §2·§3, 스키마·의미규칙은 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) §1·§2가 SSOT다. **측정 세그먼트·기준선은 고정이 아니라 AI가 프로파일링해 정한다.**
 
 `Customer_Profile`을 **집계 진단**한다 — 단순히 "컬럼이 있으니 가능"이 아니라, **실제 데이터 값으로 지표 비율을 내고 약점을 찾아 추천**한다.
 - **집계 경로(사전 집계, 대기 없음)**: 매일 새벽 Automation(`CP_DIAGNOSIS_AUTOMATION`)이 세그먼트별 `SEG_*` 카운트 DE(member_id 1컬럼, 비-sendable)에 미리 적재한다. 추천 시엔 각 `SEG_*` + 모수(`Customer_Profile`·`SEG_buyers_DE`)의 **`rowCount`만** `sfmc_get_data_extension`으로 읽어 비율을 낸다(행 값 안 읽음). 읽기 패턴 상세는 [`reference/ontology/_common.md`](reference/ontology/_common.md) 3절, `SEG_*` 목록·조건은 [`reference/ontology/ecommerce-default.md`](reference/ontology/ecommerce-default.md) 4절. ⚠️ 즉석 집계는 매번 1~2분 대기·비동기 0 오판으로 불안정하니 하지 않는다.
   - **자동 구축**: `SEG_*`/Automation이 **없으면** Claude가 활성 고객사 온톨로지의 세그먼트 정의를 읽어 집계 SQL·DE·Automation을 **자동 생성**하고 1회 실행 후 읽는다([`reference/ontology/_common.md`](reference/ontology/_common.md) 6절). 이미 있으면 재생성하지 않는다(부하 방지). raw는 직접 읽지 않고 Contact Key 1컬럼 집계 쿼리만 만든다.
-- 산출한 비율을 활성 고객사 온톨로지의 룰셋 기준선(기본 템플릿: 이탈 25%·1회성 60%·휴면 30%·미전환 20%·장바구니 15%·미동의 50%)과 대조해 **비율 높은 순**으로 추천 순위를 정한다.
+- 산출한 비율의 **분포에서 두드러진 지점**을 찾아 **비율 높은 순**으로 추천 순위를 정한다. 고정 임계값(온톨로지 §3 참고값: 이탈~25%·1회성~60% 등)을 쓸 땐 "이 기준으로 가정함"을 밝힌다.
 - **발송(진입) DE는 진단 단계에서 만들지 않는다.** 캠페인을 고른 뒤 **1-6에서** 세그먼트 조건 + 채널 동의 필터를 적용해 생성한다(실제 발송 인원 = 세그먼트 ∩ 동의).
 - 갈래 A(리스트업)면 주요 지표 전체를 진단해 **약점 우선순위로** 추천 캠페인을 제시한다.
 - 갈래 B(의도 포함)면 해당 의도 지표 위주로 진단하고 복잡도 변형까지 후보로 만든다.

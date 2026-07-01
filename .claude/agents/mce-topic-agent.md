@@ -28,7 +28,7 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 ## 워크플로우
 
 > 추천은 **고객 데이터 진단에 근거**한다. 분석 소스(기본 템플릿 = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 활성 고객사 온톨로지에 지정돼 있다. 1행=1고객이며 **원천 사실값 컬럼**(날짜·수치)을 담는다.
-> 진단 지표 → 추천 캠페인 룰셋·비율 계산식·동의 필터 규칙은 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md)(방법) + 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](../skills/mce-campaign/reference/ontology/ecommerce-default.md)(스키마·기준선·`SEG_*`)를 SSOT로 따른다.
+> ⭐ **캠페인 목록·기준선을 온톨로지에서 고르는 게 아니다.** [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **§2 "컬럼 프로파일링 → 캠페인 도출"** 방법대로, 온톨로지의 §1 스키마 + §2 의미규칙만 읽고 **마스터 DE를 프로파일링해서 측정할 세그먼트·추천 캠페인·기준선을 AI가 스스로 정한다.** 온톨로지의 §3 기준선·§4 `SEG_*`는 **고정 규칙이 아니라 예시/참고**다.
 
 > ⚡ **이 워커는 집계 진단을 수행한다.** 단, 진단은 **세그먼트 비율(전체 대비 %)** 산출까지다 — 캠페인 선택 후의 *확정 대상자 추출·진입 DE 생성*은 상위(SKILL.md 1-6)에서 한다. 즉 "약점 탐지용 비율"은 내가 내고, "발송 대상 DE"는 상위가 만든다.
 
@@ -36,20 +36,19 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 `sfmc_get_data_extension_fields`로 `Customer_Profile`의 **필드(신호 컬럼) 목록**을 확인한다. 진단에 필요한 컬럼(`order_count`·`last_order_date`·`last_login_date`·`has_abandoned_cart`·`cart_total_amount`·`email_consent`·`sms_consent` 등)이 있는지 점검한다. 없는 지표는 진단에서 제외한다.
 
-### STEP 2. 데이터 집계 진단 (핵심) — 사전 집계 카운트 읽기 (대기 없음)
+### STEP 2. 데이터 프로파일링 진단 (핵심) — rowCount로 분포 파악 (대기 없음)
 
-진단은 **사전 적재된 `SEG_*` 카운트 DE의 rowCount**를 읽어 즉시 한다. 읽기 패턴은 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) 3절, `SEG_*` 목록·조건은 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](../skills/mce-campaign/reference/ontology/ecommerce-default.md) 4절을 SSOT로 따른다.
+진단은 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **§2(프로파일링→도출) + §3(rowCount 읽기)** 을 따른다. **측정할 세그먼트는 AI가 온톨로지 §1 스키마 + §2 의미규칙을 보고 정한다** — 온톨로지 §4 `SEG_*`는 흔한 예시일 뿐, 그대로만 측정하는 고정 목록이 아니다.
 
-**0. 진단 인프라 확인·부트스트랩 (먼저 1회).** `sfmc_get_data_extensions($search:"SEG_")`로 현재 `SEG_*`를 조회해 온톨로지 "세그먼트 정의" 표와 대조한다.
-   - 정의된 `SEG_*`가 **전부 존재**하면 → 바로 아래 1번(rowCount 읽기)으로 간다. (평상시, 부하·대기 0)
-   - **없거나 불일치**하면 → [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **6절 부트스트랩**대로 **온톨로지 §2 지표 정의(말로 된 정의)로부터 SQL을 직접 조립**해 집계 쿼리·`SEG_*` DE·Automation을 생성하고 1회 실행한 뒤(1~2분 대기) 읽는다. (고정 목록을 베끼는 게 아니라 정의로부터 생성. raw 직접 읽기 금지 — Contact Key 1컬럼 SELECT.)
-   - 🚨 **생성 후 검증 의무(_common.md 6-3)**: "만들었다"고 보고하기 전 `sfmc_get_data_extensions`/`sfmc_get_sql_queries`/`sfmc_get_automations`로 **라이브 재조회**해 ① 실재 ② `createdDate`가 오늘인지(아니면 "기존 객체"로 보고) ③ `rowCount` 실측값을 확인한다. **추정 rowCount·기존 객체를 신규 생성으로 보고 금지.**
+**0. 진단 인프라 확인·부트스트랩 (먼저 1회).** `sfmc_get_data_extensions($search:"SEG_")`로 현재 계정의 카운트 DE를 조회한다.
+   - AI가 정한 측정 세그먼트의 count DE가 **이미 있고 신선하면** → 바로 1번(rowCount 읽기). (평상시, 부하·대기 0, **재생성 금지**)
+   - **있지만 낡음(stale)이면** → [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **6-1b 신선도 체크**대로 **재집계**(생성 아님, `sfmc_run_automation` 1회 → 1~2분 대기 → 재조회). 낡음 판정: 진단 Automation이 멈춤(`PausedSchedule`) / lastRun이 마스터 DE 최근 import보다 이전 / 모수 정합성 깨짐(예: 모수 10만인데 구매자 7,901). **낡은 스냅샷을 그대로 진단값으로 쓰지 말 것.**
+   - **없으면** → [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **6절 부트스트랩**대로 **§2 의미규칙으로부터 집계 SQL을 직접 조립**해 count DE·Automation을 생성하고 1회 실행 후(1~2분 대기) 읽는다. (raw 직접 읽기 금지 — Contact Key 1컬럼 SELECT.)
+   - 🚨 **생성 후 검증 의무(_common.md 6-3)**: "만들었다"고 보고 전 `sfmc_get_data_extensions`/`sfmc_get_sql_queries`/`sfmc_get_automations`로 **라이브 재조회**해 ① 실재 ② `createdDate`가 오늘인지(아니면 "기존 객체"로 보고) ③ `rowCount` 실측값 확인. **추정 rowCount·기존 객체를 신규 생성으로 보고 금지.**
 
-1. `sfmc_get_data_extension`으로 **rowCount**를 읽는다 (GUID는 `sfmc_get_data_extensions($search:"SEG_")`로 조회):
-   - 모수: `Customer_Profile`(전체), `SEG_buyers_DE`(구매자)
-   - 세그먼트: `SEG_repeat_buyer_DE`·`SEG_churn_DE`·`SEG_dormant_DE`·`SEG_noconv_DE`·`SEG_cart_DE`·`SEG_noconsent_DE`
-2. **비율** = 세그먼트 rowCount / 분모 rowCount(전체 또는 구매자).
-3. 룰셋 기준선(이탈 25%·1회성 60%·휴면 30%·미전환 20%·장바구니 15%·미동의 50%)과 대조해 **비율 높은 순으로 추천 순위**를 정한다.
+1. **프로파일링**: AI가 정한 각 세그먼트 + 모수(전체 `Customer_Profile`, 필요시 구매자)의 **rowCount**를 `sfmc_get_data_extension`으로 읽는다(GUID는 `sfmc_get_data_extensions`로 조회). 날짜=최근성 / 수치=값구간 / Boolean=비율 / 범주=값별(GROUP BY) 분포를 파악한다.
+2. **비율** = 세그먼트 rowCount / 적절한 분모(전체 또는 구매자).
+3. **도출**: 분포에서 **두드러진 지점**을 찾아 캠페인을 도출하고 **비율 높은 순**으로 정렬한다. 기준선은 **분포에서 잡는 것이 원칙**이고, 온톨로지 §3 참고값을 쓸 땐 결과에 **"이 기준으로 가정함"을 밝힌다.** 온톨로지에 없던 쏠림(특정 등급·카테고리·지역 등)도 후보로 올린다.
 
 > ⚠️ **평상시(이미 구축됨)엔 즉석 집계를 하지 않는다.** 매번 1~2분 대기 + 비동기 rowCount 0 오판 위험. 사전 적재분만 읽는다. **DE/Automation 재생성도 금지** — 0번에서 "전부 존재"로 판정되면 새로 만들지 않는다(부하·중복 방지, `_common.md` 6-1).
 > `SEG_*`/Automation이 **아예 없으면** = 최초 구축 → 0번 부트스트랩(`_common.md` 6절)으로 **자동 생성 후** 읽는다(상위에 떠넘기지 않는다). 단순히 rowCount가 0인데 DE/Automation은 있으면 = 비동기 지연이거나 해당 세그먼트 0명 → 재생성하지 말고 잠시 후 재확인한다. **"데이터가 SQL 레이어에 없다"는 식으로 오판 금지** — Customer_Profile은 SQL로 정상 조회된다.
@@ -58,7 +57,7 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 ### STEP 3. 추천 + 우선순위 산정
 
-지표를 **비율 높은 순**(매출/이탈 영향이 큰 이탈·1회성 등은 가중 가능)으로 정렬하고, 각 지표의 **추천 캠페인**을 상위 후보로 올린다. 비율이 낮아 두드러지지 않는 지표(생일·쿠폰만료 등)는 "추가 가능 캠페인"으로 하위에 둔다.
+프로파일링에서 나온 지표를 **비율 높은 순**(매출/이탈 영향이 큰 이탈·1회성 등은 가중 가능)으로 정렬하고, 각 지표에서 **도출한 캠페인**을 상위 후보로 올린다. 비율이 낮아 두드러지지 않는 지표(생일·쿠폰만료 등)는 "추가 가능 캠페인"으로 하위에 둔다.
 (갈래 B = 특정 의도가 있으면, 그 의도에 해당하는 지표를 맨 위에 두고 분기 컬럼으로 단순/중간/복합 변형을 함께 제시한다.)
 
 ### STEP 4. 진단 결과 + 후보 반환
