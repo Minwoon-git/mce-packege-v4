@@ -14,12 +14,12 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 > **이 단계는 실행 모드(수동/자동)와 무관하게 항상 동일하게 동작합니다.** 데이터를 진단해 캠페인을 추천합니다.
 >
-> ⭐ **1차원 아님, 3차원**: "필드 있음 → 캠페인 가능"(1차원)이 아니라, **"이탈위험 32% → 이탈 고객 재구매 유도 추천"**(3차원)으로 추천한다. 컬럼 존재만 보고 누구나 떠올릴 목록을 나열하지 말고, **데이터를 본 분석**을 제시한다. 진단 차원·아키타입 방법은 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md), 기준선·룰셋은 활성 고객사 온톨로지([`reference/ontology/ecommerce-default.md`](../skills/mce-campaign/reference/ontology/ecommerce-default.md))를 SSOT로 따른다. ⚠️ 출력엔 "약점/주목" 단어·컬럼을 쓰지 않는다(지표·인원·비율·추천 캠페인만).
+> ⭐ **1차원 아님, 3차원**: "필드 있음 → 캠페인 가능"(1차원)이 아니라, **"이탈위험 32% → 이탈 고객 재구매 유도 추천"**(3차원)으로 추천한다. 컬럼 존재만 보고 누구나 떠올릴 목록을 나열하지 말고, **데이터를 본 분석**을 제시한다. 진단 차원·아키타입 방법은 [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md), 기준선·룰셋은 활성 고객사 분석 가이드([`reference/analysis-guide/ecommerce-default.md`](../skills/mce-campaign/reference/analysis-guide/ecommerce-default.md))를 SSOT로 따른다. ⚠️ 출력엔 "약점/주목" 단어·컬럼을 쓰지 않는다(지표·인원·비율·추천 캠페인만).
 
 ## 호출/반환 규약 (상위 오케스트레이터 ↔ 워커)
 
 - **입력**: 상위가 전달하는 사용자 의도 한 문장(예: "신규회원 캠페인"), 그리고 갈래 A/B 여부.
-- **단일 출처(SSOT)**: 상세 절차는 `mce-campaign` 스킬의 STEP 1 절과 **온톨로지 2파일**을 따른다 — ⑴ **방법** [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md)(진단 차원·아키타입·사전집계 패턴·동의 원칙·폴더 fallback), ⑵ **값** 활성 고객사 온톨로지 기본 [`reference/ontology/ecommerce-default.md`](../skills/mce-campaign/reference/ontology/ecommerce-default.md)(분석 DE·스키마 매핑·해석 규칙·기준선·`SEG_*` 정의). **진단 시 두 파일을 함께 읽는다** — 컬럼명·기준선·세그먼트 조건은 고객사 온톨로지에서 가져온다(하드코딩 금지). 진입점 요약은 [`reference/de-and-folders.md`](../skills/mce-campaign/reference/de-and-folders.md). 이 파일의 아래 내용과 충돌하면 스킬/온톨로지 파일을 우선한다.
+- **단일 출처(SSOT)**: 상세 절차는 `mce-campaign` 스킬의 STEP 1 절과 **분석 가이드 2파일**을 따른다 — ⑴ **방법** [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md)(진단 차원·아키타입·사전집계 패턴·동의 원칙·폴더 fallback), ⑵ **값** 활성 고객사 분석 가이드 기본 [`reference/analysis-guide/ecommerce-default.md`](../skills/mce-campaign/reference/analysis-guide/ecommerce-default.md)(분석 DE·스키마 매핑·해석 규칙·기준선·`SEG_*` 정의). **진단 시 두 파일을 함께 읽는다** — 컬럼명·기준선·세그먼트 조건은 고객사 분석 가이드에서 가져온다(하드코딩 금지). 진입점 요약은 [`reference/de-and-folders.md`](../skills/mce-campaign/reference/de-and-folders.md). 이 파일의 아래 내용과 충돌하면 스킬/분석 가이드 파일을 우선한다.
 - **사용자에게 직접 질문하지 않는다.** 캠페인 선택·모드 선택은 상위가 한다. 추가 판단이 필요하면 상위에 사유를 담아 반환한다.
 - **반환물**: **데이터 분석표**(지표 | 인원 | 비율 | 추천 캠페인)와, 비율 높은 순으로 정렬한 캠페인 후보 표를 반환한다. 각 후보의 활용 DE·핵심 필드·추천 Journey 유형·복잡도를 포함한다(스킬 1-4 형식). 이 텍스트가 곧 상위에 돌아가는 결과다.
 
@@ -27,8 +27,8 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 ## 워크플로우
 
-> 추천은 **고객 데이터 진단에 근거**한다. 분석 소스(기본 템플릿 = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 활성 고객사 온톨로지에 지정돼 있다. 1행=1고객이며 **원천 사실값 컬럼**(날짜·수치)을 담는다.
-> ⭐ **캠페인 목록·기준선을 온톨로지에서 고르는 게 아니다.** [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **§2 "컬럼 프로파일링 → 캠페인 도출"** 방법대로, 온톨로지의 §1 스키마 + §2 의미규칙만 읽고 **마스터 DE를 프로파일링해서 측정할 세그먼트·추천 캠페인·기준선을 AI가 스스로 정한다.** 온톨로지의 §3 기준선·§4 `SEG_*`는 **고정 규칙이 아니라 예시/참고**다.
+> 추천은 **고객 데이터 진단에 근거**한다. 분석 소스(기본 템플릿 = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 활성 고객사 분석 가이드에 지정돼 있다. 1행=1고객이며 **원천 사실값 컬럼**(날짜·수치)을 담는다.
+> ⭐ **캠페인 목록·기준선을 분석 가이드에서 고르는 게 아니다.** [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md) **§2 "컬럼 프로파일링 → 캠페인 도출"** 방법대로, 분석 가이드의 §1 스키마 + §2 의미규칙만 읽고 **마스터 DE를 프로파일링해서 측정할 세그먼트·추천 캠페인·기준선을 AI가 스스로 정한다.** 분석 가이드의 §3 기준선·§4 `SEG_*`는 **고정 규칙이 아니라 예시/참고**다.
 
 > ⚡ **이 워커는 집계 진단을 수행한다.** 단, 진단은 **세그먼트 비율(전체 대비 %)** 산출까지다 — 캠페인 선택 후의 *확정 대상자 추출·진입 DE 생성*은 상위(SKILL.md 1-6)에서 한다. 즉 "약점 탐지용 비율"은 내가 내고, "발송 대상 DE"는 상위가 만든다.
 
@@ -38,17 +38,17 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 ### STEP 2. 데이터 프로파일링 진단 (핵심) — rowCount로 분포 파악 (대기 없음)
 
-진단은 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **§2(프로파일링→도출) + §3(rowCount 읽기)** 을 따른다. **측정할 세그먼트는 AI가 온톨로지 §1 스키마 + §2 의미규칙을 보고 정한다** — 온톨로지 §4 `SEG_*`는 흔한 예시일 뿐, 그대로만 측정하는 고정 목록이 아니다.
+진단은 [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md) **§2(프로파일링→도출) + §3(rowCount 읽기)** 을 따른다. **측정할 세그먼트는 AI가 분석 가이드 §1 스키마 + §2 의미규칙을 보고 정한다** — 분석 가이드 §4 `SEG_*`는 흔한 예시일 뿐, 그대로만 측정하는 고정 목록이 아니다.
 
 **0. 진단 인프라 확인·부트스트랩 (먼저 1회).** `sfmc_get_data_extensions($search:"SEG_")`로 현재 계정의 카운트 DE를 조회한다.
    - AI가 정한 측정 세그먼트의 count DE가 **이미 있고 신선하면** → 바로 1번(rowCount 읽기). (평상시, 부하·대기 0, **재생성 금지**)
-   - **있지만 낡음(stale)이면** → [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **6-1b 신선도 체크**대로 **재집계**(생성 아님, `sfmc_run_automation` 1회 → 1~2분 대기 → 재조회). 낡음 판정: 진단 Automation이 멈춤(`PausedSchedule`) / lastRun이 마스터 DE 최근 import보다 이전 / 모수 정합성 깨짐(예: 모수 10만인데 구매자 7,901). **낡은 스냅샷을 그대로 진단값으로 쓰지 말 것.**
-   - **없으면** → [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) **6절 부트스트랩**대로 **§2 의미규칙으로부터 집계 SQL을 직접 조립**해 count DE·Automation을 생성하고 1회 실행 후(1~2분 대기) 읽는다. (raw 직접 읽기 금지 — Contact Key 1컬럼 SELECT.)
+   - **있지만 낡음(stale)이면** → [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md) **6-1b 신선도 체크**대로 **재집계**(생성 아님, `sfmc_run_automation` 1회 → 1~2분 대기 → 재조회). 낡음 판정: 진단 Automation이 멈춤(`PausedSchedule`) / lastRun이 마스터 DE 최근 import보다 이전 / 모수 정합성 깨짐(예: 모수 10만인데 구매자 7,901). **낡은 스냅샷을 그대로 진단값으로 쓰지 말 것.**
+   - **없으면** → [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md) **6절 부트스트랩**대로 **§2 의미규칙으로부터 집계 SQL을 직접 조립**해 count DE·Automation을 생성하고 1회 실행 후(1~2분 대기) 읽는다. (raw 직접 읽기 금지 — Contact Key 1컬럼 SELECT.)
    - 🚨 **생성 후 검증 의무(_common.md 6-3)**: "만들었다"고 보고 전 `sfmc_get_data_extensions`/`sfmc_get_sql_queries`/`sfmc_get_automations`로 **라이브 재조회**해 ① 실재 ② `createdDate`가 오늘인지(아니면 "기존 객체"로 보고) ③ `rowCount` 실측값 확인. **추정 rowCount·기존 객체를 신규 생성으로 보고 금지.**
 
 1. **프로파일링**: AI가 정한 각 세그먼트 + 모수(전체 `Customer_Profile`, 필요시 구매자)의 **rowCount**를 `sfmc_get_data_extension`으로 읽는다(GUID는 `sfmc_get_data_extensions`로 조회). 날짜=최근성 / 수치=값구간 / Boolean=비율 / 범주=값별(GROUP BY) 분포를 파악한다.
 2. **비율** = 세그먼트 rowCount / 적절한 분모(전체 또는 구매자).
-3. **도출**: 분포에서 **두드러진 지점**을 찾아 캠페인을 도출하고 **비율 높은 순**으로 정렬한다. 기준선은 **분포에서 잡는 것이 원칙**이고, 온톨로지 §3 참고값을 쓸 땐 결과에 **"이 기준으로 가정함"을 밝힌다.** 온톨로지에 없던 쏠림(특정 등급·카테고리·지역 등)도 후보로 올린다.
+3. **도출**: 분포에서 **두드러진 지점**을 찾아 캠페인을 도출하고 **비율 높은 순**으로 정렬한다. 기준선은 **분포에서 잡는 것이 원칙**이고, 분석 가이드 §3 참고값을 쓸 땐 결과에 **"이 기준으로 가정함"을 밝힌다.** 분석 가이드에 없던 쏠림(특정 등급·카테고리·지역 등)도 후보로 올린다.
 
 > ⚠️ **평상시(이미 구축됨)엔 즉석 집계를 하지 않는다.** 매번 1~2분 대기 + 비동기 rowCount 0 오판 위험. 사전 적재분만 읽는다. **DE/Automation 재생성도 금지** — 0번에서 "전부 존재"로 판정되면 새로 만들지 않는다(부하·중복 방지, `_common.md` 6-1).
 > `SEG_*`/Automation이 **아예 없으면** = 최초 구축 → 0번 부트스트랩(`_common.md` 6절)으로 **자동 생성 후** 읽는다(상위에 떠넘기지 않는다). 단순히 rowCount가 0인데 DE/Automation은 있으면 = 비동기 지연이거나 해당 세그먼트 0명 → 재생성하지 말고 잠시 후 재확인한다. **"데이터가 SQL 레이어에 없다"는 식으로 오판 금지** — Customer_Profile은 SQL로 정상 조회된다.
@@ -101,7 +101,7 @@ Plan 설계·정의서 작성·Journey 생성은 하지 않습니다. (각각 mc
 
 ## Decision-Making Framework
 
-1. **단일 소스 진단**: 활성 고객사 온톨로지에 지정된 분석 DE(기본 템플릿 = `Customer_Profile`)를 집계·진단해 추천한다. 없거나 비면 [`reference/ontology/_common.md`](../skills/mce-campaign/reference/ontology/_common.md) 5절의 폴더 fallback 절차를 따른다.
+1. **단일 소스 진단**: 활성 고객사 분석 가이드에 지정된 분석 DE(기본 템플릿 = `Customer_Profile`)를 집계·진단해 추천한다. 없거나 비면 [`reference/analysis-guide/_common.md`](../skills/mce-campaign/reference/analysis-guide/_common.md) 5절의 폴더 fallback 절차를 따른다.
 2. **진단 기반 추천**: 모든 후보는 실제 집계한 **진단 비율**과 그 약점 판정에 근거한다. 비율을 산출하지 못한 지표를 약점으로 지어내지 않는다.
 3. **약점 우선**: 약점(`is_weakness=True`) 지표의 추천 캠페인을 상위에 배치한다. 사용자 의도가 있으면 그 의도 지표를 최우선으로 본다.
 4. **다양성**: 가능하면 난이도(단순 발송 ↔ 다단계 분기)가 다른 후보를 섞어 선택지를 넓힌다.

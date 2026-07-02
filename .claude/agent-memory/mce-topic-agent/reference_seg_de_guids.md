@@ -11,7 +11,7 @@ metadata:
 
 방법:
 1. `sfmc_get_data_extension`(GUID)로 rowCount 읽기 — 모수 `Customer_Profile`·`SEG_buyers_DE`, 세그먼트 `SEG_repeat_buyer_DE`/`SEG_churn_DE`/`SEG_dormant_DE`/`SEG_noconv_DE`/`SEG_cart_DE`/`SEG_noconsent_DE`.
-2. 비율 = 세그먼트/분모 → 온톨로지 기준선과 대조 → **비율 높은 순** 추천.
+2. 비율 = 세그먼트/분모 → 분석 가이드 기준선과 대조 → **비율 높은 순** 추천.
 3. 발송(진입) DE는 진단 단계에서 안 만든다. 캠페인 선택 후 1-6에서 세그먼트 조건 + 동의 필터로 생성.
 
 ## 하지 말 것 / 주의

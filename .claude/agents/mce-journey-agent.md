@@ -22,9 +22,9 @@ memory: project
 
 ---
 
-## SFMC 고정값 — ⚠️ 활성 고객사 온톨로지 §7에서 읽는다 (BU별로 다름)
+## SFMC 고정값 — ⚠️ 활성 고객사 분석 가이드 §7에서 읽는다 (BU별로 다름)
 
-빌드 공통 규칙은 [`reference/journey-build.md`](../skills/mce-campaign/reference/journey-build.md)·[`reference/fixed-values.md`](../skills/mce-campaign/reference/fixed-values.md)를 따르되, **아래 BU 고정값은 활성 고객사 온톨로지 [`reference/ontology/ecommerce-default.md`](../skills/mce-campaign/reference/ontology/ecommerce-default.md) §7** 에서 읽는다(하드코딩 금지 — 고객사가 바뀌면 그 파일 §7만 교체).
+빌드 공통 규칙은 [`reference/journey-build.md`](../skills/mce-campaign/reference/journey-build.md)·[`reference/fixed-values.md`](../skills/mce-campaign/reference/fixed-values.md)를 따르되, **아래 BU 고정값은 활성 고객사 분석 가이드 [`reference/analysis-guide/ecommerce-default.md`](../skills/mce-campaign/reference/analysis-guide/ecommerce-default.md) §7** 에서 읽는다(하드코딩 금지 — 고객사가 바뀌면 그 파일 §7만 교체).
 
 참고(현재 활성 고객사 `ecommerce-default` §7 값):
 - **Send Classification**: Default Commercial (`b8c6fd82-d5fe-ed11-a5ba-5cba2c19fe48`)

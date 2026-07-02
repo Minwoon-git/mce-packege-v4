@@ -33,7 +33,7 @@
 
 스킬 본문: [`.claude/skills/mce-campaign/SKILL.md`](.claude/skills/mce-campaign/SKILL.md)
 참조 데이터: `.claude/skills/mce-campaign/reference/` (저니 페이로드·이메일 표준·고정값·오류 학습)
-**온톨로지(2층·3에이전트 이원화)**: `reference/ontology/_common.md`(공통 방법 — 컬럼 프로파일링→캠페인 도출, 사전집계, 부트스트랩) + `reference/ontology/ecommerce-default.md`(활성 고객사 값 — 분석 §1·2, 기획 §6, 전이 §7). ⭐ **MD는 "의미 사전"이지 쿼리·캠페인 카탈로그가 아니다** — 캠페인 목록·기준선·측정 세그먼트는 AI가 마스터 DE를 프로파일링해 스스로 정한다(§3·§4는 예시). 새 고객사는 `ontology/<고객사>.md` 한 개만 추가하고 SKILL.md의 "활성 고객사" 줄만 바꾼다.
+**분석 가이드(2층·3에이전트 이원화)**: `reference/analysis-guide/_common.md`(공통 방법 — 컬럼 프로파일링→캠페인 도출, 사전집계, 부트스트랩) + `reference/analysis-guide/ecommerce-default.md`(활성 고객사 값 — 분석 §1·2, 기획 §6, 전이 §7). ⭐ **MD는 "의미 사전"이지 쿼리·캠페인 카탈로그가 아니다** — 캠페인 목록·기준선·측정 세그먼트는 AI가 마스터 DE를 프로파일링해 스스로 정한다(§3·§4는 예시). 새 고객사는 `analysis-guide/<고객사>.md` 한 개만 추가하고 SKILL.md의 "활성 고객사" 줄만 바꾼다.
 
 ---
 
