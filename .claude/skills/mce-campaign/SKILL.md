@@ -167,7 +167,8 @@ STEP 1에 진입하면, **사용자가 입력한 프롬프트에 특정 의도 �
 
 ## 1-1. 고객 데이터 진단 — `Customer_Profile` 을 집계한다 (먼저 수행)
 
-> 추천은 **고객 데이터 진단에 근거**한다(3차원). 분석 소스(활성 고객사 ecommerce-default = `Customer_Profile`, key `CD_Customer_Profile_DE`)는 고객사 분석 가이드에 지정돼 있다.
+> 추천은 **고객 데이터 진단에 근거**한다(3차원). 분석 소스는 **활성 고객사 분석 가이드 §1이 지정한 DE**를 쓴다.
+> ⭐ **현재 ecommerce-default 활성 소스 = 다중 엔티티 → `RECON_Profile`(Key `RECON_Profile_DE`)** (RAW_Customers·Orders·OrderDetails·Products·Coupons를 JOIN 집계한 프로파일, [`analysis-guide/ecommerce-default.md`](reference/analysis-guide/ecommerce-default.md) §1). **아래 절차에 나오는 `Customer_Profile`은 예시 이름일 뿐 — §1이 지정한 소스 DE(현재 `RECON_Profile`)로 치환해 읽는다.** 진단 `SEG_*`도 이 프로파일을 읽는다. (프로파일에 없는 컬럼이 필요한 캠페인은 원천 엔티티에서 읽는다 — §1 확장 컬럼 안내.)
 > 진단 방법(프로파일링→도출·사전집계·fallback)은 [`reference/analysis-guide/_common.md`](reference/analysis-guide/_common.md) §2·§3, 스키마·의미규칙은 활성 고객사 분석 가이드 [`reference/analysis-guide/ecommerce-default.md`](reference/analysis-guide/ecommerce-default.md) §1·§2가 SSOT다. **측정 세그먼트·기준선은 고정이 아니라 AI가 프로파일링해 정한다.**
 
 `Customer_Profile`을 **집계 진단**한다 — 단순히 "컬럼이 있으니 가능"이 아니라, **실제 데이터 값으로 지표 비율을 내고 약점을 찾아 추천**한다.

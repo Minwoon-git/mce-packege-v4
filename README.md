@@ -136,10 +136,12 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 
 #### STEP 1 — 데이터 기반 자율 추천 (분석 가이드 + 프로파일링)
 
-필드 존재만 보는 1차원이 아니라, **AI가 마스터 DE(`Customer_Profile`)를 프로파일링**(집계로 분포 파악)해 두드러진 지점을 찾고 **캠페인·기준선을 스스로 도출**합니다. 캠페인 목록·기준선을 문서에 하드코딩하지 않습니다.
+필드 존재만 보는 1차원이 아니라, **AI가 고객 프로파일을 프로파일링**(집계로 분포 파악)해 두드러진 지점을 찾고 **캠페인·기준선을 스스로 도출**합니다. 캠페인 목록·기준선을 문서에 하드코딩하지 않습니다.
+
+- **원천이 다중 테이블이면 자동 통합**: 원천이 `고객·구매마스터·구매상세·제품·쿠폰`처럼 정규화된 여러 엔티티면, AI가 스키마를 읽고 **JOIN·집계로 고객 프로파일 DE를 먼저 빌드**한 뒤 그 위에서 진단합니다(단일 평탄화 DE면 이 단계 생략 — 방법은 [`_common.md`](.claude/skills/mce-campaign/reference/analysis-guide/_common.md) §6-0). ecommerce-default는 현재 다중 엔티티(`RAW_*` 5테이블) → `RECON_Profile` 기반으로 동작하며, 단일 프로파일 대비 **10만 전수 대조 파생값 불일치 0**으로 검증됨.
 
 - **분석 가이드 2층 (MD = 의미 사전)**: 공통 방법([`analysis-guide/_common.md`](.claude/skills/mce-campaign/reference/analysis-guide/_common.md)) + 고객사 값([`analysis-guide/ecommerce-default.md`](.claude/skills/mce-campaign/reference/analysis-guide/ecommerce-default.md): §1 스키마 · §2 의미규칙(세금/포인트/동의) · §6 기획 · §7 전이 BU값). **AI는 §1·§2만 읽고** 어떤 세그먼트를 잴지, 어떤 캠페인을 추천할지, 기준선을 얼마로 볼지 **데이터를 보고 정합니다.** (§3·§4는 예시일 뿐)
-- **AI가 집계 쿼리 자동 생성**: 진단에 필요한 `SEG_*` 카운트 DE·SQL·Automation이 없으면 AI가 분석 가이드 정의로부터 **직접 만들어** 적재합니다(부하 방지 위해 raw는 안 읽고 `rowCount`만 읽음). 낡으면(automation 멈춤·마스터 변경) **자동 재집계**합니다.
+- **AI가 집계 쿼리 자동 생성**: 진단에 필요한 `SEG_*` 카운트 DE·SQL·Automation이 없으면 AI가 분석 가이드 정의로부터 **직접 만들어** 적재합니다(부하 방지 위해 raw는 안 읽고 `rowCount`만 읽음). 다중 테이블 원천이면 **프로파일 빌드(JOIN 집계)까지 포함**합니다. 낡으면(automation 멈춤·마스터 변경) **자동 재집계**합니다.
 - **출력**: 지표·인원·비율·추천 캠페인(비율 높은 순). 고정 임계값을 쓰면 "이 기준으로 가정함"을 밝힙니다.
 - **📄 분석 리포트 자동 생성 (D1)**: 리스트업/진단 직후, 진단 결과를 **문서형 HTML 리포트**로 자동 생성·게시하고 링크를 제시합니다(공통 틀 [`report-guide.md`](.claude/skills/mce-campaign/reference/report-guide.md) + `report-template.html`, 값은 고객사 진단·분석 가이드 기준).
 - **발송(진입) DE는 캠페인 선택 후 생성** — 세그먼트 조건 + 채널 동의 필터(이메일 `email_consent`, SMS/알림톡 `sms_consent`)를 적용. 실제 발송 인원 = 세그먼트 ∩ 동의(진단 인원보다 작음).
