@@ -115,6 +115,40 @@ Customer_Profile ─COUNT SQL─► SEG_* 카운트 DE ─rowCount 즉시 읽기
 
 > ⚠️ **대전제 (부하 방지)**: 자동 생성하는 것은 **집계 쿼리/DE/스케줄**이지, raw를 읽어오는 코드가 아니다. 무거운 집계는 SFMC Automation(서버)이 수행하고, Claude·진단은 그 결과 `rowCount`만 읽는다(3절). 어떤 단계에서도 Claude가 수십만 행을 직접 끌어오지 않는다.
 
+### 6-0. 원천이 여러 테이블일 때 — 다중 엔티티 → 프로파일 집계 (⚠️ 선행 단계)
+
+> 실제 고객사 원천은 **단일 평탄화 DE가 아니라 정규화된 여러 엔티티**인 경우가 많다(예: `고객`·`구매마스터(주문)`·`구매상세`·`제품`·`쿠폰`, 고객 1:N 주문, 주문 1:N 상세, 상세 N:1 제품). 이때 `order_count`·`total_spent`·`last_order_date`·`preferred_category`·`unused_coupon_count` 같은 **진단 지표는 원본 컬럼이 아니라 여러 테이블을 JOIN·집계해야 나오는 파생값**이다. 따라서 `SEG_*` 카운트(6-2)를 만들기 **전에**, 먼저 이 파생값들을 담은 **중간 "고객 프로파일 DE"를 JOIN 집계로 생성**한다. (원천이 이미 단일 프로파일 DE면 이 단계는 건너뛴다.)
+
+**원칙:**
+- **파생값은 박제하지 말고 원천에서 계산한다** — 프로파일 DE 자체도 Automation SQL로 **매번 재집계**(Overwrite). 원천 테이블·관계·파생 정의는 활성 고객사 분석 가이드 §1(스키마)에 엔티티·조인키로 명시한다(컬럼명·키는 고객사 파일, 방법은 여기).
+- **집계는 서버측 SQL JOIN** — Claude가 원천 스키마를 읽고 JOIN·GROUP BY SQL을 **직접 조립**한다(§6-2와 동일 정신). raw 행을 끌어오지 않는다(부하 방지 대전제 유지).
+- 프로파일 DE가 완성되면 그 위에서 §2 프로파일링 / §3 rowCount 진단 / 6-2 `SEG_*` 생성을 **그대로** 수행한다(하류는 단일 DE 때와 동일).
+
+**검증된 집계 패턴** (2026-07-03 실측: 다중 5테이블 → 프로파일 재구성이 원본 파생값과 **불일치 0/5,000** 확인. 테스트 하네스 = `RAW_Customers`·`RAW_Orders`·`RAW_OrderDetails`·`RAW_Products`·`RAW_Coupons` → `RECON_Profile`, 대조 `RECON_DIFF`):
+
+```sql
+SELECT c.member_id,
+       COALESCE(o.order_count,0)   AS order_count,      -- COUNT(주문)
+       COALESCE(o.total_spent,0)   AS total_spent,      -- SUM(주문금액)
+       o.last_order_date,                               -- MAX(주문일)
+       pc.category                 AS preferred_category,-- 상세⨝제품 최빈 카테고리(ROW_NUMBER)
+       COALESCE(cp.unused_coupon_count,0) AS unused_coupon_count -- COUNT(미사용 쿠폰)
+FROM   Customers c
+LEFT JOIN (SELECT member_id, COUNT(*) order_count, SUM(order_amount) total_spent,
+                  MAX(order_date) last_order_date FROM Orders GROUP BY member_id) o ON o.member_id=c.member_id
+LEFT JOIN (SELECT member_id, COUNT(*) unused_coupon_count FROM Coupons WHERE is_used='False' GROUP BY member_id) cp ON cp.member_id=c.member_id
+LEFT JOIN (SELECT member_id, category FROM (SELECT o2.member_id, p.category,
+                  ROW_NUMBER() OVER (PARTITION BY o2.member_id ORDER BY COUNT(*) DESC) rn
+                  FROM Orders o2 JOIN OrderDetails d ON d.order_id=o2.order_id
+                  JOIN Products p ON p.product_id=d.product_id GROUP BY o2.member_id,p.category) z WHERE rn=1) pc ON pc.member_id=c.member_id
+```
+
+**주의 (실측에서 확인된 한계):**
+- **`LEFT JOIN` + `COALESCE(...,0)`** 로 비구매자(주문 0건)도 프로파일에 남긴다(모수 누락 방지).
+- **비구매자의 `preferred_category`는 구매내역으로 도출 불가** — 주문이 없으면 NULL. 선호를 열람/기타 신호로 잡아야 하면 그 원천을 별도로 조인한다(구매 기반만으로는 못 채움을 명시).
+- **금액 합산 반올림** — 파생 금액을 나눴다 합치면 센트 단위 오차가 날 수 있으니 정합성 대조 시 소액 허용오차를 둔다.
+- 프로파일 DE도 **stale 대상**이다(6-1b) — 원천이 바뀌면 재집계한다.
+
 ### 6-1. 언제 실행하나 (트리거)
 
 STEP 1 진단 시작 시 `sfmc_get_data_extensions($search:"SEG_")`로 현재 `SEG_*` DE를 조회해 **활성 고객사 분석 가이드의 "세그먼트 정의" 표**와 대조한다.
