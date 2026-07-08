@@ -29,6 +29,10 @@
 > 이메일 콘텐츠(에셋)를 새로 만들 때는 **항상 아래 "고퀄리티 + born-compliant" 방식**으로 생성한다.
 > 빈 본문/단순 텍스트 이메일을 만든 뒤 나중에 footer만 붙이는 방식은 **금지** — SFMC 검증 플래그가 갱신되지 않아 CAN-SPAM "물리적 주소 없음" 오류가 계속 남는다.
 
+> ⭐ **신규 생성은 템플릿 기반으로 한다.** 골격·자리표시자·이미지(C) 절차·고객사 값 분리는 [`email-template/_guide.md`](email-template/_guide.md)가 SSOT다.
+> `email-template/_master.html`(검증 통과 골격) + `email-template/<고객사>.json`(브랜드 값)을 채워 완성 HTML을 만든 뒤 `sfmc_create_content_builder_asset`으로 생성한다.
+> 아래 항목은 그 요약이다.
+
 **필수 구성 (모든 발송용 이메일):**
 1. 반응형 `<table>` 레이아웃 (600px + 인라인 CSS + `@media max-width:620px` 모바일 대응)
 2. 브랜드 헤더(로고/브랜드명) + 히어로(헤드라인) + 본문(가치 제안 1개) + 오퍼/혜택 섹션

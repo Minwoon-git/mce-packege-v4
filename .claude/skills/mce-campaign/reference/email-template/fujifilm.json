@@ -1,0 +1,28 @@
+{
+  "_comment": "후지필름몰(FUJIFILM Mall) 브랜드 킷 — 이메일 생성의 단일 진실(SSOT). 2026-07-06 https://www.fujifilm.co.kr 에서 추출. 이 값들만으로 고정 템플릿(_master.html)이 렌더된다. 활성화: _guide.md '활성 고객사' 줄을 fujifilm.json 으로.",
+  "brand_name": "후지필름몰",
+  "logo_url": "https://resources.fujifilm.co.kr/upload/img/logo/3/20250522131510622.png",
+  "logo_width": 150,
+  "colors": {
+    "accent": "#ec1b3b",
+    "accent_bg": "#fdedf0",
+    "header_bg": "#ffffff",
+    "header_text": "#221e1f",
+    "text": "#221e1f",
+    "muted": "#767676",
+    "page_bg": "#f4f4f4"
+  },
+  "font_stack": "NotoSansKR,'Malgun Gothic','맑은 고딕',Dotum,sans-serif",
+  "style": {
+    "button_shape": "square",
+    "btn_radius": 6,
+    "card_radius": 10
+  },
+  "footer": {
+    "company": "FUJIFILM Korea",
+    "use_account_address": true
+  },
+  "image_folder_category_id": 82578,
+  "image_domain": "image.mkt.milvus.co.kr",
+  "source": "https://www.fujifilm.co.kr/main.do"
+}
