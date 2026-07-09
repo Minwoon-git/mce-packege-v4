@@ -113,7 +113,7 @@ claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo
 사용자가 만들고 싶은 캠페인을 **간략한 한 문장**(예: "신규 회원을 위한 캠페인 생성")으로 입력하면,
 **상위 에이전트(오케스트레이터)**([CLAUDE.md](CLAUDE.md))가 총괄하여 STEP 1~4를 진행해 MCE 캠페인을 완성합니다.
 사용자는 상위 에이전트하고만 대화하고, 상위가 각 STEP을 담당 **서브 에이전트**(`mce-topic-agent`/`mce-planning-agent`/`mce-journey-agent`)에게 `Agent` 도구로 위임합니다.
-사용자와의 모드 선택·승인은 상위가 하위 호출 사이에서 처리합니다. (Codex 실행 시에는 서브에이전트 도구가 없어 메인 루프가 동일 절차를 직접 수행 — [AGENTS.md](AGENTS.md) 참고)
+사용자와의 모드 선택·승인은 상위가 하위 호출 사이에서 처리합니다.
 
 ```
 사용자 입력 → 상위 에이전트(오케스트레이터)
