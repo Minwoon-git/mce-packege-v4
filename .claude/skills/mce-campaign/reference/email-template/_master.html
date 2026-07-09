@@ -1,13 +1,12 @@
 <!--
   ============================================================
   고정 이메일 템플릿 (LOCKED LAYOUT) — 손대는 값은 브랜드 킷뿐
-  ------------------------------------------------------------
   · 이 파일의 레이아웃/구조는 고정이다. 색·폰트·모서리·버튼모양 등
     모든 시각값은 <고객사>.json(브랜드 킷)에서만 온다.
   · 브랜드 킷에 없는 색/폰트/레이아웃을 임의로 만들지 않는다.
   · 캠페인마다 바뀌는 것은 카피(제목·헤드라인·오퍼·CTA)와 이미지뿐.
   · {{token}} = 브랜드 킷 또는 캠페인 값으로 치환. #IF 블록은 생성 시 한쪽만 남긴다.
-  · 규칙 SSOT: _guide.md
+  · 규칙 SSOT: _template-guide.md
   ============================================================
 -->
 %%[ VAR @name SET @name = AttributeValue("FirstName") IF EMPTY(@name) THEN SET @name = "고객" ENDIF ]%%<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

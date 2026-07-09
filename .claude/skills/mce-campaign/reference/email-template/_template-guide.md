@@ -8,9 +8,8 @@
 ```
 
 - **골격(고정)**: [`_master.html`](_master.html) — 레이아웃·구조는 잠겨 있음. 시각값은 전부 토큰.
-- **브랜드 킷(단일 진실)**: `<고객사>.json` (예: [`fujifilm.json`](fujifilm.json), [`ecommerce-default.json`](ecommerce-default.json))
+- **브랜드 킷(단일 진실)**: `<고객사>.json` (예: [`fujifilm.json`](fujifilm.json))
 - **검증 기준 실물**: 신규회원 웰컴 샘플 emailId `64096`
-- **고객사 도입·운영 흐름(셋업·역할·발송 전 조건)**: [`client-guide.md`](client-guide.md)
 
 > ⭐ 2층 구조는 `analysis-guide/`와 동일 철학. 새 고객사는 `<고객사>.json` **한 개만** 추가하고 아래 줄만 바꾼다.
 >
