@@ -52,6 +52,23 @@
 
 ---
 
+## ⭐ 라우팅 — 기본 세팅(발송결과/감사로그/IP워밍 저니)은 `mce-base-setup` 스킬로
+
+아래 의도가 감지되면 **`mce-base-setup` 스킬을 로드**하여 그 절차를 따른다. 실작업은 `mce-base-setup-agent` 워커에 위임한다.
+
+**트리거 (하나라도 해당되면 `mce-base-setup` 로드):**
+- 기본 세팅 실행 — "기본세팅", "기본 세팅 해줘"
+- ① 발송 결과 적재 — "발송 결과 적재", "트래킹 데이터 적재", 데이터뷰(_Sent/_Open 등) 적재 요청
+- ② 감사로그 적재 — "감사로그 적재", "audit log 적재"
+- ③ IP 워밍용 저니 생성 — "IP 워밍 저니 만들어줘", "워밍용 저니 생성"
+
+이 스킬은 **계정에 객체를 실제로 생성하는 쓰기 작업**이다(온보딩 '점검'과 완전 별개). 그래서 **위임 전에 상위가 생성 예정 객체 목록을 제시하고 `AskUserQuestion`으로 승인을 1회 받는다.** 기존 객체는 삭제/덮어쓰지 않고(멱등), 저니는 Draft로만 생성한다(발행 안 함).
+
+스킬 본문: [`.claude/skills/mce-base-setup/SKILL.md`](.claude/skills/mce-base-setup/SKILL.md)
+참조 데이터: `.claude/skills/mce-base-setup/reference/` (발송결과 파이프라인·감사로그 파이프라인·IP 워밍 저니 스펙)
+
+---
+
 ## 🧭 오케스트레이션 흐름 — 상위 에이전트가 하위 워커에 위임
 
 상위 에이전트(이 메인 루프)는 `mce-campaign` 스킬을 로드한 뒤, 아래 순서로 **하위 에이전트를 `Agent` 도구로 호출**한다.
@@ -156,6 +173,7 @@
 | [`mce-planning-agent`](.claude/agents/mce-planning-agent.md) | STEP 2 | Plan 설계 + xlsx 정의서 생성 | 선택 캠페인·DE/필드·실행 모드·(수동 시)확정 Plan 값 | 정의서 파일 경로 + Plan 요약 |
 | [`mce-journey-agent`](.claude/agents/mce-journey-agent.md) | STEP 3 | 정의서 → SFMC Journey 생성(기본 Draft) | 정의서 경로/캠페인 ID·발행 여부 | Journey 이름·ID·상태·링크 |
 | [`mce-onboarding-agent`](.claude/agents/mce-onboarding-agent.md) | (온보딩) | 발송 인프라 read-only 점검 → 세팅 상태 분류 + 잔여 태스크·일정 가이드 | 점검 요청 | 세팅 점검 리포트(✅/⚠️/❌) + 워밍 일정 플랜 |
+| [`mce-base-setup-agent`](.claude/agents/mce-base-setup-agent.md) | (기본 세팅) | ① 발송 결과 적재(DE+SQL+Automation) ② 감사로그 적재(Audit API→DE) ③ IP 워밍 저니 생성(Draft) | 승인된 실행 범위(①②③) | 생성/실행 결과 표 + 워밍 운영 가이드 |
 
 > 세 워커 모두 상세 절차·검증 페이로드는 `mce-campaign` 스킬의 `reference/` 파일을 SSOT로 따른다.
 > 단일 에이전트 버전으로 되돌리려면 `.claude/_backup_single_agent_20260621/` 의 백업본을 복원한다.
