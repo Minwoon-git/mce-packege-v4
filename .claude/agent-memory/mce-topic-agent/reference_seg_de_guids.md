@@ -20,11 +20,15 @@ metadata:
 - rowCount가 0이면 = Automation 미실행 또는 비동기 지연. **"데이터가 SQL 레이어에 없다"는 식으로 오판 금지** — 비동기 지연일 뿐이며, 90초 후 재조회하면 정상 적재됨.
 - **GUID는 하드코딩 금지.** SEG_*는 재생성되면 GUID가 바뀐다. `sfmc_get_data_extensions(query_json:{"$search":"SEG_"})`로 그때그때 GUID를 찾는다. `sfmc_get_data_extension`은 GUID(id)로만 조회된다(key 불가).
 
-## 운영 상수 (2026-07-01 갱신)
+## ⭐ 2026-07-02 이후 — 분석 소스가 RECON_Profile로 전환됨
 
-- Customer_Profile: key `CD_Customer_Profile_DE`, GUID `0e7c0166-836d-f111-a5e1-5cba2c19fe48`, 100,000행(2026-06-30 import), 원천 24필드 sendable. (이전 GUID d64d8979-...는 stale)
-- SQL Query 폴더: categoryId = **82567**. Automation 폴더: categoryId = **82571**.
-- CP_DIAGNOSIS_AUTOMATION: id `4e4ee6dd-88fa-4931-b34e-cdc831fe6b40`, key `CP_DIAGNOSIS_AUTOMATION`, **PausedSchedule** (스케줄 일시정지 상태), lastRunTime `2026-07-01T07:35:19` — 오늘 수동 실행됨, SEG_* 값 신선.
+`CP_DIAGNOSIS_AUTOMATION`(id `4e4ee6dd-...`)의 대상이 `Customer_Profile` → **`RECON_Profile`**(key `RECON_Profile_DE`, id `dd4657b0-3176-f111-a5e1-5cba2c19fe48`, rowCount 100,000)로 재구성됨. 자동화 이름도 "RECON_Profile 진단 카운트 (Daily)"로 변경. SEG_* DE 자체(GUID·key)는 그대로 재사용, 내부 집계 쿼리만 RECON_Profile 기준으로 갱신됨. **아래 "2026-07-01 실측값"은 구버전(Customer_Profile 기준) — 참고만 하고 실사용 금지, 최신은 바로 아래 표.**
+
+## 운영 상수 (2026-07-21 라이브 재확인)
+
+- 분석 소스: `RECON_Profile`(key `RECON_Profile_DE`), id `dd4657b0-3176-f111-a5e1-5cba2c19fe48`, rowCount 100,000, modifiedDate `2026-07-02T18:32:00.757`.
+- SQL Query 폴더: categoryId = **82567**. Automation 폴더: categoryId = **82571**. SEG_* DE 폴더: categoryId **93897**.
+- CP_DIAGNOSIS_AUTOMATION: id `4e4ee6dd-88fa-4931-b34e-cdc831fe6b40`, key `CP_DIAGNOSIS_AUTOMATION`, **PausedSchedule**(스케줄 일시정지), lastRunTime `2026-07-02T19:49:08.8` — RECON_Profile modifiedDate보다 **이후**라 재집계 필요 없음(2026-07-21 진단 시 그대로 재생성 없이 rowCount만 읽음).
 - SFMC SQL Query/Automation은 비동기 — run 후 90초 대기 후 rowCount 재확인.
 
 ## 부트스트랩 이력 (2026-06-30 최초 구축)
@@ -40,22 +44,28 @@ SQL Query categoryId는 26296(Query 폴더 루트)이 유효 (이전 메모 8256
 - "약점/주목" 컬럼·단어 안 씀. **지표·인원·비율·추천 캠페인**만, 비율 높은 순.
 - 캠페인 명칭 풀어쓰기: 윈백→"이탈 고객 재구매 유도", 재활성화→"휴면 고객 재활성화", 미전환→"신규 첫구매 유도".
 
-## 2026-07-01 실측값 (모수 100,000 / 구매자 85,059)
+## (구버전, 참고만) 2026-07-01 실측값 — Customer_Profile 기준, 대체됨
 
 repeat_buyer 55,034(64.7%/구매자) · churn 27,047(31.8%/구매자) · dormant 31,488(31.5%/전체) · noconv 14,941(14.9%/전체) · noconsent 19,893(19.9%/전체) · cart 18,149(18.1%/전체).
 
-## SEG_* DE GUID (2026-07-01 라이브 확인)
+## ⭐ 2026-07-21 라이브 재확인 실측값 (RECON_Profile 기준, 모수 100,000 / 구매자 85,059)
 
-| DE key | GUID | rowCount(2026-07-01) |
-|---|---|---|
-| Customer_Profile(CD_Customer_Profile_DE) | 0e7c0166-836d-f111-a5e1-5cba2c19fe48 | 100,000 |
-| SEG_buyers_DE | 509a6ca3-9f70-f111-a5e1-5cba2c19fe48 | 85,059 |
-| SEG_repeat_buyer_DE | e6996ca3-9f70-f111-a5e1-5cba2c19fe48 | 55,034 |
-| SEG_churn_DE | ef5563a9-9f70-f111-a5e1-5cba2c19fe48 | 27,047 |
-| SEG_dormant_DE | f95563a9-9f70-f111-a5e1-5cba2c19fe48 | 31,488 |
-| SEG_noconv_DE | 075663a9-9f70-f111-a5e1-5cba2c19fe48 | 14,941 |
-| SEG_noconsent_DE | 7d5663a9-9f70-f111-a5e1-5cba2c19fe48 | 19,893 |
-| SEG_cart_DE | 125663a9-9f70-f111-a5e1-5cba2c19fe48 | 18,149 |
+| DE key | GUID | rowCount(2026-07-21 조회) | 비율 |
+|---|---|---|---|
+| RECON_Profile_DE (모수) | dd4657b0-3176-f111-a5e1-5cba2c19fe48 | 100,000 | - |
+| SEG_buyers_DE (구매자 분모) | 509a6ca3-9f70-f111-a5e1-5cba2c19fe48 | 85,059 | 85.1%/전체 |
+| SEG_repeat_buyer_DE (1회성 구매자) | e6996ca3-9f70-f111-a5e1-5cba2c19fe48 | 55,034 | 64.7%/구매자 |
+| SEG_churn_DE (이탈위험) | ef5563a9-9f70-f111-a5e1-5cba2c19fe48 | 27,729 | 32.6%/구매자 |
+| SEG_dormant_DE (휴면) | f95563a9-9f70-f111-a5e1-5cba2c19fe48 | 32,255 | 32.3%/전체 |
+| SEG_noconsent_DE (미동의) | 7d5663a9-9f70-f111-a5e1-5cba2c19fe48 | 19,893 | 19.9%/전체 |
+| SEG_cart_DE (장바구니 이탈) | 125663a9-9f70-f111-a5e1-5cba2c19fe48 | 18,149 | 18.1%/전체 |
+| SEG_noconv_DE (첫구매 미전환) | 075663a9-9f70-f111-a5e1-5cba2c19fe48 | 14,941 | 14.9%/전체 |
+
+> churn/dormant는 구버전(Customer_Profile) 대비 소폭 변동(churn 27,047→27,729, dormant 31,488→32,255) — RECON_Profile 재구성 시 JOIN 집계값이 갱신된 결과. 이 표가 최신.
+
+## 미측정(추가 가능) — RECON_Profile에 아직 없는 컬럼
+
+`birthday`·`grade`·`region`·`signup_date`·`points_balance`·`points_expire_date`·`coupon_expire_date`는 현재 RECON_Profile에 미승계(ecommerce-default.md §1) — 생일/등급(VIP)/지역/포인트·쿠폰 만료 캠페인은 해당 컬럼을 RAW_Customers·RAW_Coupons에서 `BUILD_RECON_Profile`에 추가 승계해야 비율 측정 가능. 현재는 컬럼 부재로 비율 미산출.
 
 ## SQL Query ID (2026-06-30 생성)
 

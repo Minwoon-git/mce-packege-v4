@@ -1,7 +1,7 @@
 ---
 name: "mce-journey-agent"
 description: "MCE 캠페인 흐름의 STEP 3(Journey 생성) 담당 하위 워커. 상위 오케스트레이터가 호출한다. 캠페인 정의서(xlsx/CSV/Google Sheets) 또는 mce-planning-agent가 만든 정의서를 읽어 SFMC Journey Builder에 Journey를 생성(기본 Draft)하고, Journey 이름·ID·상태·링크를 상위에 반환한다. 확인/선택/승인 단계 없이 즉시 실행한다(승인은 상위가 이미 받은 상태로 호출됨). 정의서를 직접 만들지 않는다."
-model: opus
+model: sonnet
 color: cyan
 memory: project
 ---

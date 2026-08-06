@@ -1,7 +1,7 @@
 ---
 name: "mce-planning-agent"
 description: "MCE 캠페인 흐름의 STEP 2(기획/정의서) 담당 하위 워커. 상위 오케스트레이터가 호출한다. 선택된 캠페인 + DE/필드 정보 + 실행 모드(+수동 시 상위가 확정한 Plan 값)를 입력으로 받아, Journey Plan(단계별 설계)을 구성하고 xlsx 캠페인 정의서 파일을 생성한 뒤 파일 경로와 Plan 요약을 상위에 반환한다. SFMC Journey를 직접 생성하지 않는다(그건 mce-journey-agent). 사용자에게 직접 질문하지 않는다."
-model: sonnet
+model: opus
 color: yellow
 memory: project
 ---

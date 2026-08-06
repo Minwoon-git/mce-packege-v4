@@ -1,7 +1,7 @@
 ---
 name: "mce-topic-agent"
 description: "MCE 캠페인 흐름의 STEP 1(주제 선정) 담당 하위 워커. 상위 오케스트레이터가 호출한다. 분석 소스 `Customer_Profile`(key `CD_Customer_Profile_DE`)의 원천 신호 컬럼을 읽어, 사용자 의도에 맞는 '생성 가능한 캠페인 후보 목록'(의도 없으면 컬럼 기반 가능 캠페인 목록)을 분석해 상위에 반환한다. 진입 DE 목록을 나열하지 않는다(진입 DE는 캠페인 선택 후 Automation으로 생성). Plan 설계·정의서·Journey 생성은 하지 않는다. 사용자에게 직접 질문하지 않고, 후보 분석 결과만 구조화해 반환한다."
-model: sonnet
+model: opus
 color: green
 memory: project
 ---

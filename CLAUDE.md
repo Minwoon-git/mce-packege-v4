@@ -7,6 +7,7 @@
 
 > **오케스트레이터 원칙**: 상위 에이전트는 사용자와의 대화·모드 선택·승인·최종 보고를 직접 맡고,
 > 각 STEP의 실제 작업은 STEP별 하위 에이전트에 **위임(`Agent` 도구 호출)** 한다.
+> - STEP 0 (스키마 분석/데이터 인입 세팅 — 신규 고객사 온보딩 시에만) → `mce-schema-agent`
 > - STEP 1 (주제 선정/DE 분석) → `mce-topic-agent`
 > - STEP 2 (기획/Plan/xlsx 정의서) → `mce-planning-agent`
 > - STEP 3 (SFMC Journey 생성) → `mce-journey-agent`
@@ -58,6 +59,13 @@
 하위 에이전트는 자기 STEP만 수행하고 **구조화된 결과를 상위에 반환**한다. 상위는 그 결과를 받아 다음 행동(질문/다음 위임/보고)을 결정한다.
 
 ```
+(신규 고객사 온보딩 시에만)
+   ▼ (상위가 호출)  Agent → mce-schema-agent  ── STEP 0-A: 스키마 파일(DDL/CSV) 분석 → 매핑표·조인키 + HITL 확인목록 반환
+   ├─ [핵심 컬럼 확인] 상위가 AskUserQuestion (핵심 ID·총구매액 산식·취소환불 제외·동의값 해석)
+   ▼ (상위가 호출)  Agent → mce-schema-agent  ── STEP 0-B: 빈 RAW DE 생성 + SFTP Import 세팅 + 활성 고객사 가이드 MD 자동생성 반환
+   ├─ 상위가 활성 고객사 전환 확인(AskUserQuestion) → SKILL.md/CLAUDE.md 활성 고객사 줄 갱신
+   ▼ ⏳ 데이터 적재 게이트 (고객이 SFTP 업로드 → Import가 RAW DE 채움 → 이후 STEP 1 가능)
+
 사용자 한 문장
    │
    ▼ (상위가 호출)  Agent → mce-topic-agent   ── STEP 1: 고객 데이터 진단(SEG_* 카운트 rowCount) → 추천 캠페인 목록 반환
@@ -78,6 +86,7 @@
 - **사용자와의 모든 대화·질문·승인은 상위 에이전트만** 한다. 하위 에이전트는 사용자에게 질문하지 않는다(질문이 필요하면 상위에 반환하고 상위가 묻는다).
 - 상위는 각 하위 호출 시 **그 STEP에 필요한 입력**(선택된 캠페인·DE/필드·확정 Plan 값·실행 모드·정의서 경로 등)을 프롬프트에 모두 담아 전달한다.
 - 하위가 반환한 결과(후보 목록·정의서 경로·Journey ID 등)는 상위가 보관하여 다음 하위 호출의 입력으로 넘긴다.
+- **⓪ 신규 고객사 온보딩(스키마 파일 첨부 / 활성 고객사 가이드·RAW DE 없음)** 이면 STEP 1 전에 상위가 **STEP 0(스키마 분석)** 을 태운다: `mce-schema-agent`를 **2번** 호출한다 — Phase A(분석→매핑표+HITL 목록 반환) → 상위가 `AskUserQuestion`으로 핵심 컬럼 확정(핵심 ID·총구매액 산식·취소환불 제외·동의값) → Phase B(빈 RAW DE + SFTP Import + `analysis-guide/<고객사>.md` 자동생성). 이후 상위가 활성 고객사 전환을 확인해 SKILL.md/CLAUDE.md 활성 고객사 줄을 갱신한다. **STEP 0의 산출물은 매핑표·RAW DE·Import·가이드 MD까지이며, 분석 리포트(PPT)는 데이터 적재 후 STEP 1에서 나온다.** (상세: `mce-campaign` 스킬 STEP 0 절 + `reference/schema-mapping.md`)
 - **정의서를 사용자가 직접 첨부**한 경우 STEP 1·2를 건너뛰고 곧바로 `mce-journey-agent`(STEP 3)만 호출한다.
 - **읽기 전용 조회**(저니/DE/이메일 목록 등)는 위임하지 않고 **상위 에이전트가 직접** SFMC MCP를 호출해 답한다(아래 전역 규칙).
 - **📨 메시지 채널이 알림톡/문자/카카오/SMS이면** STEP 2 위임 전에 상위가 **"채널 해소(seq 확보)"** 를 직접 수행한다: ① 현재 BU 알림톡 저니에서 `applicationExtensionKey`·`send_key` 확인 → ② `send_key`로 micrm **`mobileList.ajax`(모바일 컨텐츠 목록)** 를 **브라우저(Claude in Chrome)** 로 조회 → ③ seq 선택(자동=의도매칭/수동=후보제시. **저니에 넣는 seq=모바일 컨텐츠 seq**, `atTmplLst`의 알림톡 템플릿 id 아님) → ④ 변수↔DE 매핑. 이 값(seq·키·변수매핑)을 planning 워커에 넘겨 정의서에 기록하게 한다. **워커는 micrm 웹세션에 접근 못 하므로 seq 조회를 위임하지 않는다.** (상세: `mce-campaign` 스킬 "메시지 채널 해소" 절 + `reference/journey-build.md` ④)
@@ -152,10 +161,11 @@
 
 | 하위 에이전트 | 담당 STEP | 역할 | 입력 (상위가 전달) | 반환 (상위가 수령) |
 |---|---|---|---|---|
+| [`mce-schema-agent`](.claude/agents/mce-schema-agent.md) | STEP 0 | (A)스키마 파일 분석→표준 매핑·조인키+HITL 목록 / (B)빈 RAW DE 생성·SFTP Import 세팅·활성 고객사 가이드 MD 자동생성 | (A)스키마 파일 경로/내용 / (B)확정 매핑+HITL 확정값+고객사명 | (A)매핑표+확인목록 / (B)RAW DE·Import 상태·가이드 MD 경로 |
 | [`mce-topic-agent`](.claude/agents/mce-topic-agent.md) | STEP 1 | 고객 데이터 진단(Customer_Profile 값 집계 → 비율) → 추천 캠페인 | 사용자 의도 한 문장 | 진단표(지표·인원·비율·추천 캠페인) |
 | [`mce-planning-agent`](.claude/agents/mce-planning-agent.md) | STEP 2 | Plan 설계 + xlsx 정의서 생성 | 선택 캠페인·DE/필드·실행 모드·(수동 시)확정 Plan 값 | 정의서 파일 경로 + Plan 요약 |
 | [`mce-journey-agent`](.claude/agents/mce-journey-agent.md) | STEP 3 | 정의서 → SFMC Journey 생성(기본 Draft) | 정의서 경로/캠페인 ID·발행 여부 | Journey 이름·ID·상태·링크 |
 | [`mce-onboarding-agent`](.claude/agents/mce-onboarding-agent.md) | (온보딩) | 발송 인프라 read-only 점검 → 세팅 상태 분류 + 잔여 태스크·일정 가이드 | 점검 요청 | 세팅 점검 리포트(✅/⚠️/❌) + 워밍 일정 플랜 |
 
-> 세 워커 모두 상세 절차·검증 페이로드는 `mce-campaign` 스킬의 `reference/` 파일을 SSOT로 따른다.
+> 모든 워커는 상세 절차·검증 페이로드를 `mce-campaign` 스킬의 `reference/` 파일을 SSOT로 따른다. (STEP 0 = [`reference/schema-mapping.md`](.claude/skills/mce-campaign/reference/schema-mapping.md))
 > 단일 에이전트 버전으로 되돌리려면 `.claude/_backup_single_agent_20260621/` 의 백업본을 복원한다.

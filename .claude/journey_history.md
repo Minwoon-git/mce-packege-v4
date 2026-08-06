@@ -501,3 +501,9 @@
 - Journey 명: 장바구니리마인더반응분기
 - Journey ID: 19e339a0-b539-46d6-a1e9-435e74987a44
 - 상태: 성공 (Draft, 미발행)
+
+## 2026-07-23 (auto)
+- 캠페인 ID: CP_047
+- Journey 명: 장바구니 금액 분기 리마인더
+- Journey ID: 4c1189b7-a3e1-4625-ac3c-e8501c7e168d
+- 상태: 성공 (Draft, 미발행)
