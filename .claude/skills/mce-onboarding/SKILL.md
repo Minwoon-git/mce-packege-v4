@@ -63,12 +63,13 @@ description: >
 | 카테고리 | 주요 항목 | 대표 점검 |
 |---|---|---|
 | **A. 접속/연동 기반** | API 연동(Installed Package), Business Unit, 사용자/권한, 기능 프로비저닝 | 🟡 API 응답 / 🔵 Setup |
+| **B. 기본 세팅 산출물** | 발송결과 적재(SENDLOG DE·Automation), 감사로그 적재(AUDITLOG DE·Automation), IP 워밍 저니(IPWARM DE·Journey) — `mce-base-setup` 3종 | 🟢 `get_data_extension`·`get_automations`·`get_journeys` |
 | **C. 발송 인증/평판** | 도메인 인증(SAP), 전용 IP·IP 워밍, RMM, 물리 주소, 트래킹 도메인 | 🔵 Setup (대부분 수동확인) |
 | **D. 발송 구성** | Sender Profile, Send Classification, Delivery Profile, 구독센터 | 🟢 `get_sender_profiles`·`get_send_classifications` |
 
 > **데이터/대상(진입 DE·데이터 적재·구독 리스트)은 점검 범위 밖**이다 — 캠페인 흐름(`mce-campaign` STEP 1)이 담당한다. 온보딩은 "데이터 모델/Contact Builder를 쓸 수 있는가"까지만(A4 추론) 본다.
 
-**사용하는 읽기 전용 MCP 도구**: `sfmc_get_sender_profiles`, `sfmc_get_send_classifications`, `sfmc_get_data_extension_folders`, `sfmc_get_content_categories`, `sfmc_get_automations`, `sfmc_get_journeys`. (`get_content_categories`·`get_data_extension_folders`·`get_automations`·`get_journeys`의 정상 응답은 각각 Content Builder·Contact Builder·Automation Studio·Journey Builder **활성화 추론**에 쓴다.)
+**사용하는 읽기 전용 MCP 도구**: `sfmc_get_sender_profiles`, `sfmc_get_send_classifications`, `sfmc_get_data_extension_folders`, `sfmc_get_content_categories`, `sfmc_get_automations`, `sfmc_get_journeys`, `sfmc_get_data_extension`, `sfmc_get_sql_queries`. (`get_content_categories`·`get_data_extension_folders`·`get_automations`·`get_journeys`의 정상 응답은 각각 Content Builder·Contact Builder·Automation Studio·Journey Builder **활성화 추론**에 쓰고, `get_data_extension`·`get_sql_queries`·`get_automations`·`get_journeys`는 **카테고리 B(기본 세팅 산출물)** 존재 점검에 쓴다.)
 
 ## STEP 2 — 상태 분류
 
@@ -77,6 +78,7 @@ description: >
 | ✅ 구성됨 | 확인된 정상 구성 (🟢 또는 🟡 응답) |
 | ⚠️ 점검필요 | 존재하나 비정상/미완(행 0개, 일시정지, 리스트 미분리, 한쪽만 존재 등) |
 | ❌ 수동확인 | 🔵 Setup 항목 — 콘솔에서 직접 확인 (질문 없이 표시만) |
+| ➖ 미구성 | (카테고리 B 전용) 기본 세팅 산출물 없음 — 오류 아님, `mce-base-setup`으로 생성 가능 안내 |
 
 **❌ 수동확인 항목 (체크리스트 카테고리 A/C/D의 🔵 Setup 항목 — 질문하지 않고 표시만):**
 
@@ -115,8 +117,11 @@ description: >
 ### ❌ 수동 확인 (콘솔에서 직접 확인)
 | 항목 | 이유 | 확인 위치 |
 
+### ➖ 기본 세팅 미구성 (`mce-base-setup`로 생성 가능 — 해당 시)
+| 항목 | 상태 | 생성 방법 |
+
 ### 🗓️ 잔여 태스크 + 권장 일정
-- (잔여 태스크 목록)
+- (잔여 태스크 목록 — 기본 세팅 미구성분은 "기본세팅 해줘(①/②/③)"로 생성 가능함을 안내)
 - (IP 워밍 램프 표 — 해당 시)
 ```
 

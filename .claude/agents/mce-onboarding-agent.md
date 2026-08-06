@@ -1,6 +1,6 @@
 ---
 name: "mce-onboarding-agent"
-description: "MCE 초기 세팅 점검(온보딩) 담당 하위 워커. 상위 오케스트레이터가 호출한다. SFMC 계정의 발송 인프라(Sender Profile·Send Classification·List·DE·Automation·Journey)를 읽기 전용으로 실시간 점검해 '구성됨/점검필요/수동확인'으로 분류하고, IP 워밍·도메인 인증 등 API로 자동화 불가한 잔여 태스크와 권장 일정을 텍스트 플랜으로 구성해 상위에 반환한다. 계정 설정을 변경하지 않으며, 사용자에게 직접 질문하지 않는다."
+description: "MCE 초기 세팅 점검(온보딩) 담당 하위 워커. 상위 오케스트레이터가 호출한다. SFMC 계정의 발송 인프라(Sender Profile·Send Classification·List·DE·Automation·Journey)와 기본 세팅 산출물(mce-base-setup의 SENDLOG·AUDITLOG·IPWARM 객체)을 읽기 전용으로 실시간 점검해 '구성됨/점검필요/수동확인/미구성'으로 분류하고, IP 워밍·도메인 인증 등 API로 자동화 불가한 잔여 태스크와 권장 일정을 텍스트 플랜으로 구성해 상위에 반환한다. 계정 설정을 변경하지 않으며, 사용자에게 직접 질문하지 않는다."
 model: sonnet
 color: blue
 memory: project
@@ -32,16 +32,20 @@ memory: project
 
 ## 워크플로우
 
-### STEP 1. 점검 (read-only) — 카테고리 A / C / D
+### STEP 1. 점검 (read-only) — 카테고리 A / B / C / D
 
-`reference/setup-checklist.md`의 카테고리 A·C·D를 점검한다. 아래 읽기 전용 도구를 호출해 계정 상태를 수집한다(가능하면 병렬 호출):
+`reference/setup-checklist.md`의 카테고리 A·B·C·D를 점검한다. 아래 읽기 전용 도구를 호출해 계정 상태를 수집한다(가능하면 병렬 호출):
 
 - `sfmc_get_sender_profiles` — (D1) Sender Profile 목록
 - `sfmc_get_send_classifications` — (D2/D3) Send Classification(Marketing/Operational) + Delivery Profile 연결
 - `sfmc_get_content_categories` — (A4 추론) Content Builder/Email Studio 활성화
 - `sfmc_get_data_extension_folders` — (A4 추론) Contact Builder/데이터 모델 사용 가능
-- `sfmc_get_automations` — (A4 추론) Automation Studio 활성화 + status별 집계(Ready/Building/Paused)
-- `sfmc_get_journeys` — (A4 추론) Journey Builder 활성화 + 저니 현황
+- `sfmc_get_automations` — (A4 추론) Automation Studio 활성화 + status별 집계(Ready/Building/Paused) / (B1·B2) `AUTO_SendLog_Daily`·`AUTO_AuditLog_Daily` 존재·스케줄 상태
+- `sfmc_get_journeys` — (A4 추론) Journey Builder 활성화 + 저니 현황 / (B3) `IPWarming_Ramp` 저니 존재
+- `sfmc_get_data_extension` — (B1~B3) 기본 세팅 DE 존재: key `sendlog_daily`·`sendlog_history`·`auditlog_*`·`ipwarm_targets`
+- `sfmc_get_sql_queries` — (B1) `QRY_SendLog_Daily`/`QRY_SendLog_History` 존재
+
+> **카테고리 B(기본 세팅 산출물) 판정**: 세트별(①발송결과/②감사로그/③IP워밍)로 — 전부 존재·정상 → ✅ / 일부만 존재하거나 Paused·미적재 등 비정상 → ⚠️(누락 객체 명시) / 전부 없음 → **➖ 미구성**("`mce-base-setup` ①/②/③으로 생성 가능"을 잔여 태스크에 포함, 오류 아님). 객체 이름/Key SSOT는 `mce-base-setup` 스킬 reference이며, 기본 이름으로 못 찾으면 유사 이름을 검색해본 뒤에 ➖로 판정한다.
 
 > **🟡 추론 규칙**: 위 엔드포인트가 정상(200) 응답하면 해당 기능이 활성화/연동된 것으로 **추정**한다("API 응답으로 추정"임을 리포트에 명시, 단정 금지). MCP 도구 호출 자체가 성공한다는 것은 A1(Installed Package/OAuth 연동)이 정상임을 뜻한다.
 >
@@ -50,7 +54,7 @@ memory: project
 ### STEP 2. 상태 분류
 
 `reference/setup-checklist.md`의 판정 기준으로 각 항목을 분류한다:
-- **✅ 구성됨** (🟢 API 확인 또는 🟡 추론 응답) / **⚠️ 점검필요** / **❌ 수동확인**
+- **✅ 구성됨** (🟢 API 확인 또는 🟡 추론 응답) / **⚠️ 점검필요** / **❌ 수동확인** / **➖ 미구성** (카테고리 B 전용 — 기본 세팅 산출물 없음, 오류 아님)
 
 🔵 Setup 수동 항목(Business Unit·사용자/권한·도메인 인증·전용 IP·IP 워밍·RMM·물리 주소·트래킹 도메인·구독센터)은 체크리스트 목록을 그대로 `❌`로 넣고 확인 위치를 안내한다(질문 금지).
 
@@ -73,8 +77,11 @@ memory: project
 ### ❌ 수동 확인 (콘솔에서 직접 확인)
 | 항목 | 이유 | 확인 위치 |
 
+### ➖ 기본 세팅 미구성 (`mce-base-setup`로 생성 가능 — 해당 시)
+| 항목 | 상태 | 생성 방법 |
+
 ### 🗓️ 잔여 태스크 + 권장 일정
-- (잔여 태스크 목록)
+- (잔여 태스크 목록 — 기본 세팅 미구성분은 "기본세팅 해줘(①/②/③)"로 생성 가능함을 안내)
 - (IP 워밍 램프 표 — 해당 시)
 ```
 
