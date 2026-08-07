@@ -132,7 +132,9 @@ app.post('/api/chat', (req, res) => {
 
   child.on('error', (err) => finish({ type: 'error', message: `claude 실행 실패: ${err.message}` }));
   child.on('close', (code) => {
-    if (!gotResult && code !== 0) {
+    if (child.stoppedByUser && !gotResult) {
+      finish({ type: 'result', text: '⏹ 요청을 중단했습니다.' }); // 사용자 중단은 오류가 아닌 안내로
+    } else if (!gotResult && code !== 0) {
       finish({ type: 'error', message: stderr.trim() || `claude 종료 코드 ${code}` });
     } else {
       finish();
@@ -147,11 +149,22 @@ app.post('/api/chat', (req, res) => {
 });
 
 // 실행 중인 요청 중지 (UI의 ⏹ 버튼)
+// Windows에서 shell:true 스폰은 cmd가 부모라 child.kill()로는 실제 claude 프로세스가 살아남는다
+// → taskkill /T 로 프로세스 트리 전체를 종료한다
+function killTree(child) {
+  if (process.platform === 'win32') {
+    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
+  } else {
+    child.kill();
+  }
+}
+
 app.post('/api/stop', (req, res) => {
   const { chatId } = req.body || {};
   const child = chatId && running.get(chatId);
   if (child) {
-    child.kill();
+    child.stoppedByUser = true;
+    killTree(child);
     running.delete(chatId);
     return res.json({ stopped: true });
   }
