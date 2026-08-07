@@ -68,7 +68,8 @@
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v4.7l3 1.8"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
+    shrink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>',
     send: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4L3.4 3.6l-.01 6.6L13.5 12 3.39 13.8z"/></svg>',
     stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
@@ -82,6 +83,7 @@
   <style>
     :host { all: initial; }
     * { box-sizing: border-box; margin: 0; font-family: "Pretendard", "Malgun Gothic", -apple-system, "Segoe UI", sans-serif; }
+    [hidden] { display: none !important; } /* authored display 값이 hidden 속성을 무시하지 못하게 전역 고정 */
     :host {
       --grad: linear-gradient(135deg, #0f2f6d 0%, #1d4ed8 55%, #2f7ae5 100%);
       --accent: #1d4ed8;
@@ -118,8 +120,8 @@
     /* ── 패널 ── */
     .panel {
       position: fixed; right: 26px; bottom: 26px; z-index: 2147483647;
-      width: 448px; max-width: calc(100vw - 52px);
-      height: 700px; max-height: calc(100vh - 52px);
+      width: 448px; max-width: calc(100vw - 16px);
+      height: 700px; max-height: calc(100vh - 16px);
       background: var(--bg); color: var(--text);
       border-radius: 22px; box-shadow: var(--shadow-lg);
       display: flex; flex-direction: column; overflow: hidden;
@@ -130,6 +132,17 @@
     }
     @keyframes panelIn { from { opacity: 0; transform: scale(.92) translateY(14px); } to { opacity: 1; transform: none; } }
     .panel[hidden] { display: none; }
+
+    /* ── 크기 조절 핸들 (8방향) ── */
+    .rz { position: absolute; z-index: 50; }
+    .rz-n  { top: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+    .rz-s  { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+    .rz-e  { right: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+    .rz-w  { left: 0; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+    .rz-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+    .rz-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+    .rz-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+    .rz-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
 
     /* ── 헤더 ── */
     .head {
@@ -212,7 +225,8 @@
       border-left: 2px solid var(--border); padding-left: 10px; margin-left: 4px;
     }
     .progress .step .detail { opacity: .65; font-size: 11px; }
-    .typing { display: flex; gap: 4px; padding: 6px 0 2px 14px; }
+    .typing { display: flex; gap: 4px; padding: 6px 0 2px 14px; align-items: center; }
+    .typing .tlabel { font-style: normal; font-size: 12px; color: var(--muted); margin-left: 7px; }
     .typing span {
       width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
       animation: bounce 1.2s infinite;
@@ -237,7 +251,8 @@
     .answer code { background: var(--soft); border-radius: 5px; padding: 1px 5px; font-size: .88em; }
     .answer pre code { background: none; padding: 0; }
     .answer table { border-collapse: collapse; margin: 8px 0; display: block; overflow-x: auto; max-width: 100%; font-size: 12.5px; }
-    .answer th, .answer td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+    /* 말풍선의 break-word가 셀 안에서 글자 단위로 꺾는 것을 막는다 — 셀은 한 줄 유지, 넘치면 표 자체가 가로 스크롤 */
+    .answer th, .answer td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; white-space: nowrap; word-break: normal; }
     .answer th { background: var(--soft); }
     .answer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .answer a:hover { text-decoration: underline; }
@@ -287,7 +302,7 @@
       flex: none; border: none; border-radius: 11px; width: 36px; height: 36px;
       cursor: pointer; display: grid; place-items: center; transition: transform .15s, opacity .15s;
     }
-    .send { background: var(--grad); color: #fff; box-shadow: 0 4px 12px rgba(29, 78, 216, .4); }
+    .send { background: var(--grad); color: #fff; }
     .send:hover:not(:disabled) { transform: scale(1.07); }
     .send:disabled { opacity: .35; cursor: default; box-shadow: none; }
     .send svg, .stopb svg { width: 16px; height: 16px; }
@@ -298,7 +313,6 @@
 
   <div class="panel" hidden>
     <div class="head">
-      <button class="hbtn back" type="button" hidden>${ICONS.back}</button>
       <div class="avatar">🤖</div>
       <div class="meta">
         <div class="title">MCE Bot</div>
@@ -306,6 +320,7 @@
       </div>
       <button class="hbtn hist" type="button" title="대화 내역">${ICONS.history}</button>
       <button class="hbtn new" type="button" title="새 대화">${ICONS.plus}</button>
+      <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
       <button class="hbtn close" type="button" title="닫기">${ICONS.close}</button>
     </div>
     <div class="body"></div>
@@ -325,7 +340,7 @@
   const bodyEl = $('.body');
   const statusEl = $('.status');
   const titleEl = $('.title');
-  const backBtn = $('.back');
+  const maxBtn = $('.max');
   const footEl = $('.foot');
   const inputEl = $('textarea');
   const sendBtn = $('.send');
@@ -384,7 +399,6 @@
 
   function showChat() {
     view = 'chat';
-    backBtn.hidden = true;
     titleEl.textContent = 'MCE Bot';
     footEl.style.display = '';
     bodyEl.innerHTML = '';
@@ -410,7 +424,6 @@
   // ── 대화 내역 화면 ──────────────────────────────────────────
   function showHistory() {
     view = 'history';
-    backBtn.hidden = false;
     titleEl.textContent = '대화 내역';
     footEl.style.display = 'none';
     bodyEl.innerHTML = '<div class="hist-title">최근 대화</div>';
@@ -453,7 +466,7 @@
     progress.className = 'progress';
     const typing = document.createElement('div');
     typing.className = 'typing';
-    typing.innerHTML = '<span></span><span></span><span></span>';
+    typing.innerHTML = '<span></span><span></span><span></span><em class="tlabel">처리 중…</em>';
     bubble.prepend(progress, typing);
     return {
       addStep(icon, text, detail) {
@@ -521,11 +534,8 @@
       if (ev.type === 'session') {
         conv.sessionId = ev.sessionId;
         saveDB();
-      } else if (ev.type === 'tool') {
-        prog.addStep('🔧', ev.name, ev.detail);
-        statusEl.textContent = `실행 중 — ${ev.name}`;
-      } else if (ev.type === 'text') {
-        prog.addStep('💬', ev.text.replace(/\s+/g, ' ').slice(0, 80));
+      } else if (ev.type === 'tool' || ev.type === 'text') {
+        // 진행 과정은 화면에 노출하지 않는다 — 결과만 표시 (typing 점 애니메이션이 처리 중 표시를 대신함)
       } else if (ev.type === 'result') {
         resultText = ev.text;
         if (ev.sessionId) { conv.sessionId = ev.sessionId; saveDB(); }
@@ -567,7 +577,34 @@
     applyPos(); // 버튼을 원래 기준 위치로 복원
   });
   $('.hist').addEventListener('click', () => (view === 'history' ? showChat() : showHistory()));
-  backBtn.addEventListener('click', showChat);
+  // 최대화 ↔ 기본 크기 복원 토글.
+  // 기본 크기(448×700)가 아니면(드래그로 늘렸든 최대화든) 복원 아이콘을 보여주고, 누르면 기본 크기로 되돌린다.
+  const DEFAULT_SIZE = { w: 448, h: 700 };
+  const isDefaultSize = () => Math.abs(size.w - DEFAULT_SIZE.w) < 4 && Math.abs(size.h - DEFAULT_SIZE.h) < 4;
+  // 기본 크기에서 벗어나는 순간의 위치 스냅샷 — 복원 시 크기와 함께 이 자리로 되돌린다.
+  // (커진 상태에서 사용자가 패널을 직접 옮기면 스냅샷을 버리고 그 위치를 존중한다)
+  let savedPos = null;
+  const updateMaxBtn = () => {
+    maxBtn.innerHTML = isDefaultSize() ? ICONS.expand : ICONS.shrink;
+    maxBtn.title = isDefaultSize() ? '최대화' : '기본 크기로 복원';
+  };
+  maxBtn.addEventListener('click', () => {
+    if (isDefaultSize()) {
+      savedPos = { ...panelPos };
+      size.w = innerWidth - 16;
+      size.h = innerHeight - 16;
+      panelPos = { right: 8, bottom: 8 };
+    } else {
+      size.w = DEFAULT_SIZE.w;
+      size.h = DEFAULT_SIZE.h;
+      if (savedPos) panelPos = { ...savedPos };
+      savedPos = null;
+    }
+    applySize();
+    applyPos();
+    localStorage.setItem(SIZE_KEY, JSON.stringify(size));
+    updateMaxBtn();
+  });
   $('.new').addEventListener('click', () => {
     if (busy) return;
     const conv = activeConv();
@@ -646,8 +683,67 @@
       panel.style.bottom = panelPos.bottom + 'px';
     }
   }
+
+  // ── 패널 크기 조절 (8방향 핸들, 크기는 localStorage에 영구 보존) ──
+  const SIZE_KEY = 'mceExt.size';
+  const size = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(SIZE_KEY));
+      if (s && Number.isFinite(s.w) && Number.isFinite(s.h)) return s;
+    } catch { /* 기본 크기 사용 */ }
+    return { w: 448, h: 700 };
+  })();
+  const clampW = (w) => Math.min(Math.max(w, 340), innerWidth - 16);
+  const clampH = (h) => Math.min(Math.max(h, 420), innerHeight - 16);
+
+  function applySize() {
+    size.w = clampW(size.w);
+    size.h = clampH(size.h);
+    panel.style.width = size.w + 'px';
+    panel.style.height = size.h + 'px';
+  }
+  applySize();
   applyPos();
-  window.addEventListener('resize', applyPos);
+  window.addEventListener('resize', () => { applySize(); applyPos(); });
+
+  for (const d of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
+    const h = document.createElement('div');
+    h.className = `rz rz-${d}`;
+    panel.appendChild(h);
+    h.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      h.setPointerCapture(e.pointerId);
+      if (!savedPos) savedPos = { ...panelPos }; // 크기 조절 시작 위치 스냅샷 (복원용)
+      const sx = e.clientX, sy = e.clientY;
+      const sw = size.w, sh = size.h;
+      const sr = panelPos.right, sb = panelPos.bottom;
+      const move = (ev) => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        // 패널은 right/bottom 기준 고정이라, 왼쪽/위쪽 핸들은 크기만 바꾸면 되고
+        // 오른쪽/아래쪽 핸들은 반대편이 안 움직이게 right/bottom도 함께 보정한다
+        if (d.includes('w')) size.w = clampW(sw - dx);
+        if (d.includes('e')) { const w = clampW(sw + dx); panelPos.right = sr - (w - sw); size.w = w; }
+        if (d.includes('n')) size.h = clampH(sh - dy);
+        if (d.includes('s')) { const hh = clampH(sh + dy); panelPos.bottom = sb - (hh - sh); size.h = hh; }
+        applySize();
+        applyPos();
+      };
+      const up = (ev) => {
+        try { h.releasePointerCapture(ev.pointerId); } catch { /* 이미 해제됨 */ }
+        h.removeEventListener('pointermove', move);
+        h.removeEventListener('pointerup', up);
+        h.removeEventListener('pointercancel', up);
+        localStorage.setItem(SIZE_KEY, JSON.stringify(size));
+        updateMaxBtn(); // 드래그로 기본 크기에서 벗어나면 복원 아이콘으로 전환
+      };
+      h.addEventListener('pointermove', move);
+      h.addEventListener('pointerup', up);
+      h.addEventListener('pointercancel', up);
+    });
+  }
+  updateMaxBtn(); // 저장된 크기로 시작할 때도 아이콘 상태를 맞춘다
 
   // 패널을 열 때: 버튼 위치에서 파생해 패널만 보정 (fab 클릭 핸들러에서 호출)
   function syncPanelPos() {
@@ -693,6 +789,7 @@
     pos.right = panelPos.right;
     pos.bottom = panelPos.bottom;
     savePos();
+    savedPos = null; // 사용자가 직접 옮겼으면 복원 시에도 이 위치를 유지한다
   });
 
   // ── 계정 게이트: MCP에 연결된 계정의 MCE 화면에서만 UI 노출 ──
