@@ -62,6 +62,9 @@
 
   let busy = false;
   let view = 'chat'; // 'chat' | 'history'
+  // 진행 중인 턴의 봇 말풍선 DOM — 패널을 닫았다 열어도(showChat 재렌더) 같은 노드를 다시 붙여
+  // 스트리밍 업데이트("처리 중…"→결과)가 끊기지 않게 한다
+  let liveTurn = null; // { convId, node }
 
   // ── DOM 구성 ─────────────────────────────────────────────────
   const ICONS = {
@@ -116,6 +119,7 @@
       position: absolute; right: 3px; top: 3px; width: 13px; height: 13px;
       background: #34d399; border: 2.5px solid #fff; border-radius: 50%;
     }
+    .fab.busy .dot { background: #fbbf24; animation: blink 1s infinite; }
 
     /* ── 패널 ── */
     .panel {
@@ -361,6 +365,7 @@
     stopBtn.hidden = !v;
     statusEl.textContent = v ? (label || '처리 중…') : '대기 중';
     statusEl.classList.toggle('busy', v);
+    fab.classList.toggle('busy', v); // 플로팅 버튼 상태 점도 처리 중(노랑 깜빡임)으로 동기화
   }
 
   // ── 메시지 렌더링 ───────────────────────────────────────────
@@ -418,6 +423,8 @@
         bodyEl.appendChild(node);
       }
     }
+    // 처리 중인 턴이 이 대화 것이면 진행 중 말풍선(처리 중…)을 다시 붙인다
+    if (busy && liveTurn && liveTurn.convId === conv.id) bodyEl.appendChild(liveTurn.node);
     scrollBottom();
   }
 
@@ -509,6 +516,7 @@
 
     const { node, bubble, answer } = botNode();
     bodyEl.appendChild(node);
+    liveTurn = { convId: conv.id, node };
     scrollBottom();
     const prog = progressUI(bubble);
 
@@ -516,6 +524,7 @@
     let errored = false;
 
     const finishTurn = () => {
+      liveTurn = null;
       prog.finish();
       if (!errored) {
         const md = resultText ?? '(응답이 중단되었습니다)';
