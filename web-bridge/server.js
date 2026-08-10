@@ -25,9 +25,18 @@ app.get('/api/config', (_req, res) =>
 // chatId → 실행 중인 claude 프로세스. 같은 대화에 동시 요청이 겹치는 것을 막고, 중지 버튼에 쓴다.
 const running = new Map();
 
+// chatId → 마지막 결과. 스트림 도중 연결이 끊긴 클라이언트(확장 서비스 워커 종료 등)가
+// /api/result 폴링으로 결과를 회수할 때 쓴다. 작업 자체는 연결과 무관하게 끝까지 돈다.
+const lastResult = new Map();
+function rememberResult(chatId, data) {
+  if (!chatId) return;
+  lastResult.set(chatId, { ...data, ts: Date.now() });
+  for (const [k, v] of lastResult) if (Date.now() - v.ts > 3600e3) lastResult.delete(k); // 1시간 경과분 정리
+}
+
 // SSE 이벤트 한 건 전송
 function send(res, obj) {
-  if (!res.writableEnded) res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  if (!res.writableEnded && !res.destroyed) res.write(`data: ${JSON.stringify(obj)}\n\n`);
 }
 
 // 도구 이름을 표시용으로 정리 (mcp__sf-mce-mcp__sfmc_get_journeys → SFMC · sfmc_get_journeys)
@@ -62,6 +71,16 @@ app.post('/api/chat', (req, res) => {
 
   // --dangerously-skip-permissions: 웹 봇은 사람이 "허용"을 못 누르므로 자동 승인이 필요 (slack-bridge와 동일)
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions'];
+  // 챗봇 정책: 저장소 코드/설정/문서를 고쳐달라는 직접 요청은 거부하게 한다.
+  // (캠페인 워크플로가 만드는 산출물 — 정의서 xlsx·리포트·저니 이력 등 — 은 예외로 정상 동작)
+  // shell:true 스폰은 인자를 자동 인용하지 않으므로 직접 큰따옴표로 감싼다(그래서 영문·ASCII로 작성).
+  const BOT_POLICY =
+    'This session runs inside the MCE chatbot used by campaign operators, not the developer CLI. ' +
+    'If the user directly asks you to modify, create, or delete source code, configuration, skills, agents, ' +
+    'or any other repository files, refuse and tell them to do it in Claude Code on this PC instead. ' +
+    'This restriction does NOT apply to files produced by the normal campaign workflows, such as campaign ' +
+    'definition xlsx files, analysis reports, journey history logs, and agent memory - those keep working as usual.';
+  args.push('--append-system-prompt', `"${BOT_POLICY}"`);
   if (sessionId) args.push('--resume', sessionId);
 
   const child = spawn('claude', args, { cwd: PROJECT_ROOT, shell: true });
@@ -96,12 +115,14 @@ app.post('/api/chat', (req, res) => {
       if (ev.is_error && !ev.result) {
         send(res, { type: 'error', message: ev.error || ev.subtype || '알 수 없는 오류' });
       } else {
-        send(res, {
+        const payload = {
           type: 'result',
           text: ev.result ?? '(빈 응답)',
           cost: ev.total_cost_usd,
           sessionId: ev.session_id,
-        });
+        };
+        rememberResult(chatId, payload); // 연결이 끊긴 클라이언트의 폴링 회수용
+        send(res, payload);
       }
     }
   };
@@ -133,7 +154,9 @@ app.post('/api/chat', (req, res) => {
   child.on('error', (err) => finish({ type: 'error', message: `claude 실행 실패: ${err.message}` }));
   child.on('close', (code) => {
     if (child.stoppedByUser && !gotResult) {
-      finish({ type: 'result', text: '⏹ 요청을 중단했습니다.' }); // 사용자 중단은 오류가 아닌 안내로
+      const payload = { type: 'result', text: '⏹ 요청을 중단했습니다.' }; // 사용자 중단은 오류가 아닌 안내로
+      rememberResult(chatId, payload);
+      finish(payload);
     } else if (!gotResult && code !== 0) {
       finish({ type: 'error', message: stderr.trim() || `claude 종료 코드 ${code}` });
     } else {
@@ -158,6 +181,12 @@ function killTree(child) {
     child.kill();
   }
 }
+
+// 연결이 끊긴 클라이언트의 결과 회수 (확장이 폴링) — ts로 어느 요청의 결과인지 판별한다
+app.get('/api/result', (req, res) => {
+  const chatId = String(req.query.chatId || '');
+  res.json({ result: lastResult.get(chatId) || null, running: running.has(chatId) });
+});
 
 app.post('/api/stop', (req, res) => {
   const { chatId } = req.body || {};

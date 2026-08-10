@@ -85,7 +85,9 @@
   shadow.innerHTML = `
   <style>
     :host { all: initial; }
-    * { box-sizing: border-box; margin: 0; font-family: "Pretendard", "Malgun Gothic", -apple-system, "Segoe UI", sans-serif; }
+    /* 글꼴은 확장에 내장된 Noto Sans KR(가변, fonts/) — @font-face는 Shadow DOM 안에서 동작하지 않아
+       manifest의 content_scripts.css(fonts/fonts.css)로 문서에 등록하고 여기서는 이름만 참조한다 */
+    * { box-sizing: border-box; margin: 0; font-family: "Noto Sans KR Variable", "Pretendard", "Malgun Gothic", -apple-system, "Segoe UI", sans-serif; }
     [hidden] { display: none !important; } /* authored display 값이 hidden 속성을 무시하지 못하게 전역 고정 */
     :host {
       --grad: linear-gradient(135deg, #0f2f6d 0%, #1d4ed8 55%, #2f7ae5 100%);
@@ -522,6 +524,7 @@
 
     let resultText = null;
     let errored = false;
+    const startedAt = Date.now(); // 결과 회수 시 이 요청의 결과인지(이전 턴 잔여물이 아닌지) 판별용
 
     const finishTurn = () => {
       liveTurn = null;
@@ -557,15 +560,42 @@
         finishTurn();
       }
     });
+    // 포트가 결과 없이 끊긴 경우(서비스 워커 강제 종료 등) — 작업은 서버에서 계속 돌고 있으므로
+    // 오류로 끝내지 않고 서버의 /api/result를 폴링해 결과를 회수한다
+    const recoverResult = () => {
+      let misses = 0; // 서버 무응답 연속 횟수
+      const iv = setInterval(() => {
+        chrome.runtime.sendMessage({ type: 'getResult', chatId: conv.id }, (res) => {
+          if (chrome.runtime.lastError || !res) {
+            if (++misses >= 4) fail('❌ 연결이 끊겼습니다. web-bridge 서버 상태를 확인해 주세요.');
+            return;
+          }
+          misses = 0;
+          if (res.result && res.result.ts >= startedAt) {
+            clearInterval(iv);
+            resultText = res.result.text;
+            if (res.result.sessionId) { conv.sessionId = res.result.sessionId; saveDB(); }
+            finishTurn();
+          } else if (!res.running) {
+            // 이 요청의 결과가 저장돼 있지 않은데 실행 중도 아님 → 회수 불가 (서버 재시작 등)
+            fail('❌ 연결이 끊겼습니다. 같은 대화에서 "방금 요청 결과 알려줘"로 이어서 확인해 보세요.');
+          }
+        });
+      }, 4000);
+      const fail = (text) => {
+        clearInterval(iv);
+        errored = true;
+        answer.classList.add('error');
+        answer.textContent = text;
+        finishTurn();
+      };
+    };
+
     // 서비스 워커가 강제 재시작되는 등 포트가 끊겨도 UI가 잠기지 않게 한다
     port.onDisconnect.addListener(() => {
       if (!busy) return;
-      if (!errored && resultText === null) {
-        errored = true;
-        answer.classList.add('error');
-        answer.textContent = '❌ 연결이 끊겼습니다. 작업은 서버에서 계속될 수 있으니 잠시 후 다시 물어보세요.';
-      }
-      finishTurn();
+      if (errored || resultText !== null) { finishTurn(); return; }
+      recoverResult();
     });
 
     port.postMessage({ type: 'send', payload: { message: text, sessionId: conv.sessionId, chatId: conv.id } });

@@ -39,10 +39,12 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
   - 이벤트: `session`(세션 ID) · `tool`(도구 실행) · `text`(중간 안내) · `result`(최종 답변+비용) · `error` · `done`
   - `sessionId`를 주면 `--resume`으로 대화 맥락을 이어간다
 - `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료 (Windows에서는 `taskkill /T /F`로 프로세스 트리 전체 종료). 중단된 요청은 `result` 이벤트로 "⏹ 요청을 중단했습니다."를 내려보냄
+- `GET /api/result?chatId=` — `{ result: { text, sessionId, cost, ts } | null, running }` — 스트림 도중 연결이 끊긴 클라이언트가 결과를 회수(폴링)하는 용도. 결과는 1시간 보관. 확장은 포트가 결과 없이 끊기면 자동으로 이 엔드포인트를 폴링해 답변을 이어받음
 
 ## 유의 사항
 
 - `--dangerously-skip-permissions`로 실행 — 사람이 "허용"을 누를 수 없는 헤드리스 구조이기 때문 (slack-bridge와 동일). 외부 공개 시 반드시 인증 계층 추가 필요
+- **파일 수정 차단 지침** — 챗봇 실행에는 시스템 지침(`--append-system-prompt`)이 붙어, 저장소 코드·설정·문서를 고쳐달라는 직접 요청은 거부하고 Claude Code에서 하도록 안내한다. 캠페인 워크플로 산출물(정의서 xlsx·리포트·저니 이력 등) 생성은 정상 동작. 지침 기반이라 100% 강제는 아님
 - 탭을 닫아도 진행 중 작업은 계속됨 — 다시 열면 같은 세션으로 이어짐
 - 비용 표시는 Claude Team 구독 한도에서 차감되는 환산 참고치 (별도 청구 아님)
 

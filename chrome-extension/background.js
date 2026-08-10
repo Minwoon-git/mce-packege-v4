@@ -15,15 +15,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true; // 비동기 응답
   }
+  if (msg && msg.type === 'getResult') {
+    // 스트림이 끊긴 대화의 결과 회수 (content.js가 폴링)
+    fetch(`${BRIDGE}/api/result?chatId=${encodeURIComponent(msg.chatId || '')}`)
+      .then((r) => r.json())
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
 });
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'mce-chat') return;
   let ctrl = null;
+  let keepalive = null;
+  // 긴 작업(세팅 점검 등) 동안 서비스 워커가 유휴 종료되지 않게 주기적으로 확장 API를 호출해 타이머를 리셋한다
+  const stopKeepalive = () => { clearInterval(keepalive); keepalive = null; };
 
   port.onMessage.addListener(async (msg) => {
     if (msg.type === 'send') {
       ctrl = new AbortController();
+      if (!keepalive) keepalive = setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 20000);
       try {
         const resp = await fetch(`${BRIDGE}/api/chat`, {
           method: 'POST',
@@ -61,8 +73,10 @@ chrome.runtime.onConnect.addListener((port) => {
             }
           }
         }
+        stopKeepalive();
         port.postMessage({ type: 'done' });
       } catch (err) {
+        stopKeepalive();
         if (err.name !== 'AbortError') {
           port.postMessage({
             type: 'error',
@@ -80,5 +94,5 @@ chrome.runtime.onConnect.addListener((port) => {
     }
   });
 
-  port.onDisconnect.addListener(() => ctrl?.abort());
+  port.onDisconnect.addListener(() => { stopKeepalive(); ctrl?.abort(); });
 });
