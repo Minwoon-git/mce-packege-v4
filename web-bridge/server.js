@@ -22,6 +22,24 @@ app.get('/api/config', (_req, res) =>
   res.json({ allowedAccounts: Array.isArray(CONFIG.allowedAccounts) ? CONFIG.allowedAccounts : [] }),
 );
 
+// 산출물 다운로드 — 캠페인 워크플로가 만든 파일(정의서 xlsx·분석 리포트 등)을 확장 말풍선에서 바로 내려받는다.
+// 확장(content.js)이 답변 속 산출물 경로를 이 엔드포인트 링크(📎 칩)로 바꿔 준다.
+// 안전장치: 프로젝트 루트 안 + 허용 폴더 + 허용 확장자만 서빙 (경로 조작·임의 파일 노출 방지)
+const FILE_DIRS = new Set(['campaign_definitions', 'reports']);
+const FILE_EXTS = new Set(['.xlsx', '.xlsm', '.csv', '.pptx', '.pdf', '.png', '.md', '.html']);
+app.get('/api/file', (req, res) => {
+  const q = String(req.query.path || '');
+  const abs = path.isAbsolute(q) ? path.resolve(q) : path.resolve(PROJECT_ROOT, q);
+  const rel = path.relative(PROJECT_ROOT, abs);
+  const inside = rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+  if (!inside || !FILE_DIRS.has(rel.split(path.sep)[0]) || !FILE_EXTS.has(path.extname(abs).toLowerCase())) {
+    return res.status(403).json({ error: '허용되지 않은 경로입니다.' });
+  }
+  res.download(abs, (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
+  });
+});
+
 // chatId → 실행 중인 claude 프로세스. 같은 대화에 동시 요청이 겹치는 것을 막고, 중지 버튼에 쓴다.
 const running = new Map();
 

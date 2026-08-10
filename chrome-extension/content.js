@@ -78,6 +78,8 @@
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
     spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.7L20 9.5l-5.4 3.2L15.5 19 12 15.6 8.5 19l.9-6.3L4 9.5l6.1-1.8z"/></svg>',
   };
+  // 봇 캐릭터 이미지 — 플로팅 버튼·헤더 아바타·말풍선 미니 아이콘·빈 화면 마크 공용
+  const FAB_IMG = chrome.runtime.getURL('fab.png');
 
   const host = document.createElement('div');
   host.id = 'mce-assistant-host';
@@ -106,19 +108,20 @@
       }
     }
 
-    /* ── 플로팅 버튼 ── */
+    /* ── 플로팅 버튼 (캐릭터 이미지 fab.png, v1.11.0~) ── */
     .fab {
       position: fixed; right: 26px; bottom: 26px; z-index: 2147483647;
-      width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer;
-      background: var(--grad); color: #fff; font-size: 26px;
+      width: 76px; height: 76px; border: none; cursor: pointer;
+      background: none; padding: 0;
       display: grid; place-items: center;
       transition: transform .2s cubic-bezier(.34,1.56,.64,1);
       touch-action: none;
     }
     .fab:hover { transform: scale(1.1) rotate(6deg); }
     .fab[hidden] { display: none; } /* 계정 게이트 숨김 — authored display:grid가 [hidden] 기본 규칙을 덮지 않게 명시 */
+    .fab .fimg { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .fab .dot {
-      position: absolute; right: 3px; top: 3px; width: 13px; height: 13px;
+      position: absolute; right: 6px; top: 4px; width: 13px; height: 13px;
       background: #34d399; border: 2.5px solid #fff; border-radius: 50%;
     }
     .fab.busy .dot { background: #fbbf24; animation: blink 1s infinite; }
@@ -158,10 +161,10 @@
     }
     .head:active { cursor: grabbing; }
     .avatar {
-      width: 38px; height: 38px; border-radius: 13px; flex: none;
-      background: rgba(255,255,255,.2); backdrop-filter: blur(4px);
-      display: grid; place-items: center; font-size: 20px;
+      width: 40px; height: 40px; flex: none;
+      display: grid; place-items: center;
     }
+    .avatar img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .head .meta { flex: 1; min-width: 0; }
     .head .title { font-weight: 700; font-size: 15px; letter-spacing: -.2px; }
     .head .status { font-size: 11.5px; opacity: .85; margin-top: 1px; display: flex; align-items: center; gap: 5px; }
@@ -185,10 +188,10 @@
     /* ── 빈 화면 ── */
     .empty { text-align: center; padding: 34px 14px 20px; animation: fadeUp .3s ease; }
     .empty .mark {
-      width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 22px;
-      background: var(--grad); display: grid; place-items: center; font-size: 32px;
-      box-shadow: 0 10px 26px rgba(29, 78, 216, .35);
+      width: 76px; height: 76px; margin: 0 auto 14px;
+      display: grid; place-items: center;
     }
+    .empty .mark img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .empty h2 { font-size: 17px; letter-spacing: -.3px; margin-bottom: 5px; }
     .empty p { color: var(--muted); font-size: 12.5px; margin-bottom: 20px; }
     .chips { display: flex; flex-direction: column; gap: 9px; }
@@ -210,9 +213,10 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .msg.user { justify-content: flex-end; }
     .msg.bot .mini {
-      width: 27px; height: 27px; border-radius: 9px; flex: none; margin-top: 2px;
-      background: var(--grad); display: grid; place-items: center; font-size: 14px;
+      width: 44px; height: 44px; flex: none; margin-top: 0;
+      display: grid; place-items: center;
     }
+    .msg.bot .mini img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .bubble { max-width: 84%; padding: 10px 14px; border-radius: 16px; line-height: 1.65; word-break: break-word; }
     .msg.user .bubble {
       background: var(--grad); color: var(--user-text);
@@ -262,6 +266,14 @@
     .answer th { background: var(--soft); }
     .answer a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .answer a:hover { text-decoration: underline; }
+    /* 산출물 다운로드 칩 (📎 파일명) */
+    .answer a.dl {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--soft); border: 1px solid var(--border); border-radius: 999px;
+      padding: 2px 11px; margin: 1px 0; font-size: 12px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .answer a.dl:hover { border-color: var(--accent); text-decoration: none; }
     .answer hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     .answer.error { color: #ef4444; }
 
@@ -315,11 +327,11 @@
     .stopb { background: #ef4444; color: #fff; }
   </style>
 
-  <button class="fab" title="MCE Bot">🤖<span class="dot"></span></button>
+  <button class="fab" title="MCE Bot"><img class="fimg" draggable="false" alt="MCE Bot" src="${FAB_IMG}"><span class="dot"></span></button>
 
   <div class="panel" hidden>
     <div class="head">
-      <div class="avatar">🤖</div>
+      <div class="avatar"><img draggable="false" alt="" src="${FAB_IMG}"></div>
       <div class="meta">
         <div class="title">MCE Bot</div>
         <div class="status">대기 중</div>
@@ -355,9 +367,61 @@
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // ── 산출물 다운로드 링크 ────────────────────────────────────
+  // 답변에 나오는 산출물 경로(정의서 xlsx·분석 리포트 등)를 web-bridge의 /api/file 다운로드 링크로 바꾼다.
+  // 서버가 campaign_definitions·reports 폴더만 허용하므로 그 경로 패턴만 링크화한다.
+  const FILE_BASE = 'http://localhost:3456/api/file?path=';
+  // 하위 폴더 그룹은 lazy(*?) — greedy면 한 줄에 경로가 2개 있을 때 사이 텍스트까지 삼켜 하나로 매칭된다
+  const FILE_RE = /(?:[A-Za-z]:[\\/])?(?:[^\\/\n:*?"<>|]+[\\/])*((?:campaign_definitions|reports)[\\/](?:[^\\/\n:*?"<>|]+[\\/])*?[^\\/\n:*?"<>|]+?\.(?:xlsx|xlsm|csv|pptx|pdf|png|md|html))/gi;
+  const toDownloadHref = (tail) => FILE_BASE + encodeURIComponent(tail.replace(/\\/g, '/'));
+
+  // 봇이 마크다운 링크로 쓴 로컬 경로([정의서](C:\...\campaign_definitions\..))를 다운로드 링크로 전환
+  function fileLink(a) {
+    let href = a.getAttribute('href') || '';
+    try { href = decodeURIComponent(href); } catch { /* 원문 그대로 검사 */ }
+    FILE_RE.lastIndex = 0;
+    const m = FILE_RE.exec(href);
+    if (!m) return false;
+    a.classList.add('dl');
+    a.href = toDownloadHref(m[1]);
+    a.title = `다운로드: ${m[1].replace(/\\/g, '/')}`;
+    return true;
+  }
+
+  // 본문 텍스트에 그대로 적힌 경로를 "📎 파일명" 다운로드 칩으로 치환
+  function linkifyFiles(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let n; (n = walker.nextNode()); ) if (!n.parentElement?.closest('a')) nodes.push(n);
+    for (const n of nodes) {
+      const text = n.nodeValue;
+      FILE_RE.lastIndex = 0;
+      let m, last = 0, frag = null;
+      while ((m = FILE_RE.exec(text))) {
+        frag = frag || document.createDocumentFragment();
+        frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        const a = document.createElement('a');
+        a.className = 'dl';
+        a.href = toDownloadHref(m[1]);
+        a.title = `다운로드: ${m[1].replace(/\\/g, '/')}`;
+        a.textContent = `📎 ${m[1].split(/[\\/]/).pop()}`;
+        frag.appendChild(a);
+        last = m.index + m[0].length;
+      }
+      if (!frag) continue;
+      frag.appendChild(document.createTextNode(text.slice(last)));
+      n.replaceWith(frag);
+    }
+  }
+
   function renderMd(el, md) {
     el.innerHTML = marked.parse(md);
-    el.querySelectorAll('a').forEach((a) => { a.target = '_blank'; a.rel = 'noopener'; });
+    el.querySelectorAll('a').forEach((a) => {
+      if (fileLink(a)) return; // 다운로드 링크는 새 탭 불필요 (Content-Disposition으로 바로 저장)
+      a.target = '_blank';
+      a.rel = 'noopener';
+    });
+    linkifyFiles(el);
   }
   const scrollBottom = () => (bodyEl.scrollTop = bodyEl.scrollHeight);
 
@@ -382,7 +446,7 @@
   function botNode() {
     const div = document.createElement('div');
     div.className = 'msg bot';
-    div.innerHTML = '<div class="mini">🤖</div><div class="bubble"></div>';
+    div.innerHTML = `<div class="mini"><img draggable="false" alt="" src="${FAB_IMG}"></div><div class="bubble"></div>`;
     const bubble = div.querySelector('.bubble');
     const answer = document.createElement('div');
     answer.className = 'answer';
@@ -393,7 +457,7 @@
   function emptyStateHTML() {
     return `
     <div class="empty">
-      <div class="mark">🤖</div>
+      <div class="mark"><img draggable="false" alt="" src="${FAB_IMG}"></div>
       <h2>무엇을 도와드릴까요?</h2>
       <p>캠페인 생성 · 저니 조회 · 세팅 점검을 한 문장으로 요청하세요</p>
       <div class="chips">
