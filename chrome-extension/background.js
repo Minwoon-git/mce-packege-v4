@@ -23,6 +23,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  if (msg && msg.type === 'upload') {
+    // 파일 첨부(드래그&드롭) — content.js가 base64로 넘긴 파일을 web-bridge에 저장하고 절대 경로를 돌려준다
+    try {
+      const bin = atob(msg.dataB64 || '');
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      fetch(`${BRIDGE}/api/upload?name=${encodeURIComponent(msg.name || 'file')}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: bytes,
+      })
+        .then((r) => r.json())
+        .then(sendResponse)
+        .catch(() => sendResponse(null));
+    } catch {
+      sendResponse(null);
+    }
+    return true;
+  }
 });
 
 chrome.runtime.onConnect.addListener((port) => {

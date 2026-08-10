@@ -1,6 +1,7 @@
 // MCE 웹 브릿지 — 브라우저 채팅 UI의 메시지를 로컬 Claude Code(CLI)로 처리하고 결과를 스트리밍한다.
 // slack-bridge와 동일한 실행 패턴(claude -p, --resume 세션 연속)을 쓰되,
 // 웹에서는 stream-json + SSE로 진행 상황(도구 실행·중간 텍스트)을 실시간으로 내려보낸다.
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { spawn } = require('child_process');
@@ -38,6 +39,32 @@ app.get('/api/file', (req, res) => {
   res.download(abs, (err) => {
     if (err && !res.headersSent) res.status(404).json({ error: '파일을 찾을 수 없습니다.' });
   });
+});
+
+// 파일 첨부(드래그&드롭) 업로드 — 확장 패널에 놓은 파일을 저장하고 절대 경로를 돌려준다.
+// 정의서(xlsx/xlsm/csv)는 campaign_definitions\에 저장돼 "정의서 직접 첨부 → STEP 3" 흐름과 그대로 연결되고,
+// 그 외 허용 확장자(스키마 DDL 등)는 uploads\에 저장된다. 실행 파일 등은 거부.
+const UPLOAD_DEF_EXTS = new Set(['.xlsx', '.xlsm', '.csv']);
+const UPLOAD_ETC_EXTS = new Set(['.txt', '.sql', '.md', '.json']);
+app.post('/api/upload', express.raw({ type: () => true, limit: '25mb' }), (req, res) => {
+  const name = path.basename(String(req.query.name || '')).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').trim();
+  const ext = path.extname(name).toLowerCase();
+  if (!name || (!UPLOAD_DEF_EXTS.has(ext) && !UPLOAD_ETC_EXTS.has(ext))) {
+    return res.status(403).json({ error: `허용되지 않은 파일 형식입니다 (${ext || '확장자 없음'})` });
+  }
+  if (!req.body || !req.body.length) return res.status(400).json({ error: '파일 내용이 비어 있습니다.' });
+  const dir = path.join(PROJECT_ROOT, UPLOAD_DEF_EXTS.has(ext) ? 'campaign_definitions' : 'uploads');
+  fs.mkdirSync(dir, { recursive: true });
+  let dest = path.join(dir, name);
+  if (fs.existsSync(dest)) {
+    // 동명 파일 덮어쓰기 방지 — 타임스탬프를 붙여 새 파일로 저장
+    const t = new Date();
+    const stamp = [t.getFullYear(), t.getMonth() + 1, t.getDate()].map((n) => String(n).padStart(2, '0')).join('') +
+      '_' + [t.getHours(), t.getMinutes(), t.getSeconds()].map((n) => String(n).padStart(2, '0')).join('');
+    dest = path.join(dir, `${path.basename(name, ext)}_${stamp}${ext}`);
+  }
+  fs.writeFileSync(dest, req.body);
+  res.json({ path: dest, name: path.basename(dest) });
 });
 
 // chatId → 실행 중인 claude 프로세스. 같은 대화에 동시 요청이 겹치는 것을 막고, 중지 버튼에 쓴다.

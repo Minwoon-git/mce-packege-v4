@@ -160,11 +160,6 @@
       cursor: grab; touch-action: none;
     }
     .head:active { cursor: grabbing; }
-    .avatar {
-      width: 40px; height: 40px; flex: none;
-      display: grid; place-items: center;
-    }
-    .avatar img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .head .meta { flex: 1; min-width: 0; }
     .head .title { font-weight: 700; font-size: 15px; letter-spacing: -.2px; }
     .head .status { font-size: 11.5px; opacity: .85; margin-top: 1px; display: flex; align-items: center; gap: 5px; }
@@ -302,14 +297,46 @@
     .hitem .del svg { width: 15px; height: 15px; }
     .hist-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0; }
 
+    /* ── 파일 첨부 (드래그&드롭) ── */
+    .dropzone {
+      position: absolute; inset: 0; z-index: 60; pointer-events: none;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 2.5px dashed var(--accent); border-radius: 22px;
+      font-weight: 700; font-size: 14px; color: var(--accent);
+      backdrop-filter: blur(2px);
+    }
+    .attach { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 2px 8px; }
+    .attach .achip {
+      display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+      background: var(--soft); color: var(--accent);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 3px 6px 3px 11px; font-size: 12px; font-weight: 600;
+    }
+    .attach .achip .al { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .attach .achip.err { color: #ef4444; background: transparent; }
+    .attach .achip .rm {
+      border: none; background: none; color: var(--muted); cursor: pointer;
+      width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+      font-size: 11px; flex: none;
+    }
+    .attach .achip .rm:hover { color: #ef4444; }
+
     /* ── 입력창 ── */
     .foot { padding: 12px 14px 14px; background: var(--bg); flex: none; }
     .composer {
       display: flex; gap: 7px; align-items: flex-end;
       background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
-      padding: 7px 8px 7px 14px; box-shadow: var(--shadow-sm);
+      padding: 7px 8px; box-shadow: var(--shadow-sm);
       transition: border-color .15s;
     }
+    .attachb {
+      flex: none; border: none; border-radius: 11px; width: 36px; height: 36px;
+      cursor: pointer; display: grid; place-items: center;
+      background: var(--soft); color: var(--accent); transition: transform .15s;
+    }
+    .attachb:hover { transform: scale(1.07); }
+    .attachb svg { width: 16px; height: 16px; }
     .composer:focus-within { border-color: var(--accent); }
     textarea {
       flex: 1; border: none; resize: none; background: transparent; color: var(--text);
@@ -331,7 +358,6 @@
 
   <div class="panel" hidden>
     <div class="head">
-      <div class="avatar"><img draggable="false" alt="" src="${FAB_IMG}"></div>
       <div class="meta">
         <div class="title">MCE Bot</div>
         <div class="status">대기 중</div>
@@ -341,9 +367,13 @@
       <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
       <button class="hbtn close" type="button" title="닫기">${ICONS.close}</button>
     </div>
+    <div class="dropzone" hidden>📎 여기에 놓으면 파일이 첨부됩니다</div>
     <div class="body"></div>
     <div class="foot">
+      <div class="attach" style="display:none"></div>
       <form class="composer">
+        <button class="attachb" type="button" title="파일 첨부">${ICONS.plus}</button>
+        <input class="fpick" type="file" multiple hidden accept=".xlsx,.xlsm,.csv,.txt,.sql,.md,.json">
         <textarea rows="1" placeholder="메시지 입력…"></textarea>
         <button class="send" type="submit" title="전송">${ICONS.send}</button>
         <button class="stopb" type="button" title="중지" hidden>${ICONS.stop}</button>
@@ -363,6 +393,8 @@
   const inputEl = $('textarea');
   const sendBtn = $('.send');
   const stopBtn = $('.stopb');
+  const dropEl = $('.dropzone');
+  const attachEl = $('.attach');
 
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -564,9 +596,107 @@
     };
   }
 
+  // ── 파일 첨부 (드래그&드롭) ─────────────────────────────────
+  // 패널에 파일을 놓으면 background 경유로 web-bridge(/api/upload)에 저장하고,
+  // 저장된 절대 경로를 칩으로 보여준 뒤 전송 시 메시지 앞에 "📎 첨부 파일: <경로>"로 붙인다.
+  // (정의서 xlsx/csv는 campaign_definitions\에 저장돼 "정의서 직접 첨부 → 저니 생성" 흐름과 연결됨)
+  const UP_EXTS = ['.xlsx', '.xlsm', '.csv', '.txt', '.sql', '.md', '.json'];
+  const UP_MAX = 20 * 1024 * 1024;
+  let pendingFiles = []; // { name, path|null, err|null }
+
+  function renderAttach() {
+    attachEl.innerHTML = '';
+    attachEl.style.display = pendingFiles.length ? '' : 'none';
+    pendingFiles.forEach((f, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'achip' + (f.err ? ' err' : '');
+      chip.innerHTML = '<span class="al"></span><button class="rm" type="button" title="제거">✕</button>';
+      chip.querySelector('.al').textContent =
+        f.err ? `⚠️ ${f.name} — ${f.err}` : f.path ? `📎 ${f.name}` : `⏳ ${f.name} 업로드 중…`;
+      chip.querySelector('.rm').addEventListener('click', () => {
+        pendingFiles.splice(i, 1);
+        renderAttach();
+      });
+      attachEl.appendChild(chip);
+    });
+  }
+
+  function uploadFiles(list) {
+    for (const file of Array.from(list || [])) {
+      const ext = (file.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+      const item = { name: file.name, path: null, err: null };
+      pendingFiles.push(item);
+      if (!UP_EXTS.includes(ext)) {
+        item.err = `지원하지 않는 형식 (허용: ${UP_EXTS.join(' ')})`;
+        renderAttach();
+        continue;
+      }
+      if (file.size > UP_MAX) {
+        item.err = '20MB 초과';
+        renderAttach();
+        continue;
+      }
+      renderAttach();
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataB64 = String(reader.result).split(',')[1] || '';
+        chrome.runtime.sendMessage({ type: 'upload', name: file.name, dataB64 }, (res) => {
+          if (res && res.path) {
+            item.path = res.path;
+            item.name = res.name || file.name;
+          } else {
+            item.err = (res && res.error) || '업로드 실패 — web-bridge 서버 상태를 확인하세요';
+          }
+          renderAttach();
+        });
+      };
+      reader.onerror = () => {
+        item.err = '파일 읽기 실패';
+        renderAttach();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // 드래그 오버레이 — 파일 드래그일 때만 반응 (텍스트 선택 드래그는 무시)
+  const hasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
+  let dragDepth = 0;
+  panel.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    dropEl.hidden = false;
+  });
+  panel.addEventListener('dragover', (e) => {
+    if (hasFiles(e)) e.preventDefault();
+  });
+  panel.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    if (--dragDepth <= 0) {
+      dragDepth = 0;
+      dropEl.hidden = true;
+    }
+  });
+  panel.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    dropEl.hidden = true;
+    if (view !== 'chat') showChat();
+    uploadFiles(e.dataTransfer.files);
+  });
+
   // ── 전송 ────────────────────────────────────────────────────
   function sendMessage(text) {
-    if (busy || !text.trim()) return;
+    const ready = pendingFiles.filter((f) => f.path);
+    if (busy || (!text.trim() && !ready.length)) return false;
+    if (pendingFiles.some((f) => !f.path && !f.err)) return false; // 업로드 완료 대기 (입력은 보존)
+    if (ready.length) {
+      const lines = ready.map((f) => `📎 첨부 파일: ${f.path}`).join('\n');
+      text = text.trim() ? `${lines}\n\n${text}` : lines;
+      pendingFiles = [];
+      renderAttach();
+    }
     let conv = activeConv();
     if (!conv) conv = newConv();
     setBusy(true);
@@ -663,6 +793,7 @@
     });
 
     port.postMessage({ type: 'send', payload: { message: text, sessionId: conv.sessionId, chatId: conv.id } });
+    return true;
   }
 
   // ── 이벤트 바인딩 ───────────────────────────────────────────
@@ -718,10 +849,11 @@
   });
   $('.composer').addEventListener('submit', (e) => {
     e.preventDefault();
-    const text = inputEl.value;
-    inputEl.value = '';
-    inputEl.style.height = 'auto';
-    sendMessage(text);
+    // 전송이 실제로 이뤄진 경우에만 입력을 비운다 (업로드 대기 중 엔터 등으로 입력이 사라지지 않게)
+    if (sendMessage(inputEl.value)) {
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+    }
   });
   inputEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
@@ -733,6 +865,13 @@
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+  // 첨부(+) 버튼 — 파일 선택 대화상자로도 첨부 가능 (드래그&드롭과 동일한 업로드 흐름)
+  const fpick = $('.fpick');
+  $('.attachb').addEventListener('click', () => fpick.click());
+  fpick.addEventListener('change', () => {
+    uploadFiles(fpick.files);
+    fpick.value = ''; // 같은 파일 재선택도 change가 발생하게 초기화
   });
   stopBtn.addEventListener('click', () => {
     const conv = activeConv();

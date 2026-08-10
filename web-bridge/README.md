@@ -43,6 +43,7 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
   - `sessionId`를 주면 `--resume`으로 대화 맥락을 이어간다
 - `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료 (Windows에서는 `taskkill /T /F`로 프로세스 트리 전체 종료). 중단된 요청은 `result` 이벤트로 "⏹ 요청을 중단했습니다."를 내려보냄
 - `GET /api/result?chatId=` — `{ result: { text, sessionId, cost, ts } | null, running }` — 스트림 도중 연결이 끊긴 클라이언트가 결과를 회수(폴링)하는 용도. 결과는 1시간 보관. 확장은 포트가 결과 없이 끊기면 자동으로 이 엔드포인트를 폴링해 답변을 이어받음
+- `POST /api/upload?name=` — 파일 첨부(드래그&드롭) 업로드. raw body로 받은 파일을 저장하고 `{ path, name }` 반환. 정의서(xlsx/xlsm/csv)는 `campaign_definitions\`, 그 외 허용 확장자(txt/sql/md/json)는 `uploads\`에 저장. 동명 파일은 타임스탬프를 붙여 보존, 그 외 확장자는 403, 최대 25MB
 - `GET /api/file?path=` — 캠페인 산출물 다운로드. 확장이 답변 속 산출물 경로(정의서 xlsx·분석 리포트 등)를 이 링크(📎 칩)로 바꿔 말풍선에서 바로 내려받게 함. **허용 범위: `campaign_definitions\`·`reports\` 폴더 안의 xlsx·xlsm·csv·pptx·pdf·png·md·html만** — 그 외 경로/확장자는 403 (경로 조작 방지)
 
 ## 유의 사항
