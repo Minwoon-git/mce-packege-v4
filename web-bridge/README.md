@@ -20,9 +20,12 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 
 - 사전 조건: 이 PC에 `claude` CLI 설치 + SFMC MCP(`sf-mce-mcp`) 인증 완료 상태
 - 최초 1회: `cd web-bridge && npm install`
-- 실행: `run-web.cmd` 더블클릭 (크래시 시 5초 후 자동 재시작) 또는 `node server.js`
-- 콘솔 창을 닫으면 서버도 종료됨 — 챗봇 사용 중에는 창을 열어 둘 것 (PC 재부팅 후 재실행 필요)
-- 포트 변경: 환경변수 `PORT` 지정 (변경 시 `chrome-extension/background.js`·`manifest.json`의 주소도 함께 수정)
+- 실행 방법 3가지:
+  - **`autostart-install.cmd` 더블클릭 (권장)** — Windows 로그온 시 자동 시작 + 창 없이 백그라운드 실행. 1회만 실행하면 이후 재부팅해도 알아서 뜸. 해제는 `autostart-remove.cmd`
+  - `run-web-hidden.vbs` 더블클릭 — 이번만 창 없이 백그라운드 실행 (자동 시작 등록 없음)
+  - `run-web.cmd` 더블클릭 — 콘솔 창을 띄워 로그를 보며 실행 (창을 닫으면 서버 종료)
+- 어느 방식이든 크래시 시 5초 후 자동 재시작. **완전 종료는 `stop-web.cmd`** (재시작 루프+서버를 함께 종료)
+- 포트 변경: 환경변수 `PORT` 지정 (변경 시 `chrome-extension/background.js`·`content.js`(FILE_BASE)·`manifest.json`의 주소도 함께 수정)
 
 ## 계정 게이트 (챗봇 버튼 노출 제한)
 
@@ -40,6 +43,7 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
   - `sessionId`를 주면 `--resume`으로 대화 맥락을 이어간다
 - `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료 (Windows에서는 `taskkill /T /F`로 프로세스 트리 전체 종료). 중단된 요청은 `result` 이벤트로 "⏹ 요청을 중단했습니다."를 내려보냄
 - `GET /api/result?chatId=` — `{ result: { text, sessionId, cost, ts } | null, running }` — 스트림 도중 연결이 끊긴 클라이언트가 결과를 회수(폴링)하는 용도. 결과는 1시간 보관. 확장은 포트가 결과 없이 끊기면 자동으로 이 엔드포인트를 폴링해 답변을 이어받음
+- `GET /api/file?path=` — 캠페인 산출물 다운로드. 확장이 답변 속 산출물 경로(정의서 xlsx·분석 리포트 등)를 이 링크(📎 칩)로 바꿔 말풍선에서 바로 내려받게 함. **허용 범위: `campaign_definitions\`·`reports\` 폴더 안의 xlsx·xlsm·csv·pptx·pdf·png·md·html만** — 그 외 경로/확장자는 403 (경로 조작 방지)
 
 ## 유의 사항
 
