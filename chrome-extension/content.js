@@ -807,10 +807,15 @@
   fab.hidden = true;
   const VER = chrome.runtime.getManifest().version;
   chrome.runtime.sendMessage({ type: 'getConfig' }, (cfg) => {
-    const allowed = (cfg?.allowedAccounts || []).filter((a) => typeof a === 'string' && a.trim());
+    if (!cfg) {
+      // 서버 미응답 → 버튼 미노출 (서버가 꺼져 있으면 봇도 동작 불가한데, fail-open이면 모든 BU에 떠서 혼란)
+      console.log(`[MCE Bot v${VER}] web-bridge 응답 없음 → 버튼 미노출 (run-web.cmd 실행 후 페이지 새로고침)`);
+      return;
+    }
+    const allowed = (cfg.allowedAccounts || []).filter((a) => typeof a === 'string' && a.trim());
     if (!allowed.length) {
-      // 게이트 미설정 또는 서버 응답 없음(cfg=null) → 표시 (서버가 죽었으면 어차피 요청 시 오류로 드러남)
-      console.log(`[MCE Bot v${VER}] 게이트 미설정/설정조회실패 → 버튼 표시`, cfg);
+      // 게이트 미설정(allowedAccounts 비어 있음) → 항상 표시
+      console.log(`[MCE Bot v${VER}] 게이트 미설정 → 버튼 표시`, cfg);
       fab.hidden = false;
       return;
     }
@@ -835,7 +840,11 @@
             r.bottom > 0 && r.top < 150 &&
             r.left >= -5 && r.right <= innerWidth + 5 &&
             s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity) !== 0;
-          if (visibleInHeader) return true;
+          if (visibleInHeader) {
+            // 오탐 디버깅용 — 어떤 요소가 게이트를 통과시켰는지 남긴다
+            console.log(`[MCE Bot v${VER}] 게이트 매칭 요소:`, el.tagName, el.className, r.toJSON?.() || r);
+            return true;
+          }
         }
       }
       return false;

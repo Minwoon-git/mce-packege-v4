@@ -21,13 +21,15 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 - 사전 조건: 이 PC에 `claude` CLI 설치 + SFMC MCP(`sf-mce-mcp`) 인증 완료 상태
 - 최초 1회: `cd web-bridge && npm install`
 - 실행: `run-web.cmd` 더블클릭 (크래시 시 5초 후 자동 재시작) 또는 `node server.js`
+- 콘솔 창을 닫으면 서버도 종료됨 — 챗봇 사용 중에는 창을 열어 둘 것 (PC 재부팅 후 재실행 필요)
 - 포트 변경: 환경변수 `PORT` 지정 (변경 시 `chrome-extension/background.js`·`manifest.json`의 주소도 함께 수정)
 
 ## 계정 게이트 (챗봇 버튼 노출 제한)
 
-- `config.example.json`을 `config.json`으로 복사 → `allowedAccounts`에 MCE 상단 헤더에 표시되는 계정명 기입
-- 확장이 시작 시 `GET /api/config`로 이 목록을 받아, **계정명이 화면에 보이는 MCE에서만** 🤖 버튼을 노출
+- `config.example.json`을 `config.json`으로 복사 → `allowedAccounts`에 MCE 상단 헤더에 표시되는 계정명(BU 이름) 기입
+- 확장이 시작 시 `GET /api/config`로 이 목록을 받아, **계정명이 상단 헤더 가시 영역에 보이는 MCE에서만** 🤖 버튼을 노출
 - 파일이 없거나 목록이 비어 있으면 게이트 없이 모든 MCE 화면에서 노출
+- **서버가 꺼져 있으면 확장이 버튼을 아예 숨김**(fail-closed) — 모든 BU에 버튼이 뜬다면 서버 다운 여부부터 확인
 - `config.json`은 테넌트별 값이므로 git 추적 제외 (.gitignore 등록됨)
 - 수정 후 서버 재시작 필요
 
@@ -36,7 +38,7 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 - `POST /api/chat` — `{ message, sessionId?, chatId? }` → SSE 스트림
   - 이벤트: `session`(세션 ID) · `tool`(도구 실행) · `text`(중간 안내) · `result`(최종 답변+비용) · `error` · `done`
   - `sessionId`를 주면 `--resume`으로 대화 맥락을 이어간다
-- `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료
+- `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료 (Windows에서는 `taskkill /T /F`로 프로세스 트리 전체 종료). 중단된 요청은 `result` 이벤트로 "⏹ 요청을 중단했습니다."를 내려보냄
 
 ## 유의 사항
 
