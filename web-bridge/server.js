@@ -41,6 +41,77 @@ app.get('/api/file', (req, res) => {
   });
 });
 
+// 캠페인 성과 대시보드 — 정적 페이지 + 데이터 JSON.
+// 데이터는 reports\dashboard-data.json(실데이터, 봇/배치가 SENDLOG 집계로 생성)이 있으면 그걸 쓰고,
+// 없으면 dashboard\sample-data.json(샘플)을 서빙한다. 페이지는 챗봇 헤더의 📊 버튼으로 연다.
+app.get('/dashboard', (_req, res) => res.sendFile(path.join(__dirname, 'dashboard', 'index.html')));
+app.use('/dashboard', express.static(path.join(__dirname, 'dashboard'))); // 이미지 등 정적 에셋 (/dashboard/fab.png)
+app.get('/api/dashboard-data', (_req, res) => {
+  const real = path.join(PROJECT_ROOT, 'reports', 'dashboard-data.json');
+  res.sendFile(fs.existsSync(real) ? real : path.join(__dirname, 'dashboard', 'sample-data.json'));
+});
+
+// 저니별 성과 엑셀 다운로드 — 대시보드의 "⬇ 엑셀" 버튼. 현재 표시 중인 저니 데이터를 받아
+// 서식(타이틀·헤더 색·퍼센트 서식·줄무늬·합계행·필터·고정 헤더)이 입혀진 xlsx로 만들어 준다.
+const ExcelJS = require('exceljs');
+app.post('/api/journey-xlsx', async (req, res) => {
+  const { from, to, journeys } = req.body || {};
+  if (!Array.isArray(journeys) || !journeys.length) return res.status(400).json({ error: '데이터가 없습니다.' });
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('저니별 성과');
+  const HEAD = ['저니', '발송', '전달', '전달률', '오픈', '오픈율', '클릭', '클릭률', 'CTOR', '바운스', '바운스율', '발송 비중'];
+  ws.columns = [{ width: 32 }, { width: 10 }, { width: 10 }, { width: 9 }, { width: 10 }, { width: 9 },
+    { width: 10 }, { width: 9 }, { width: 9 }, { width: 10 }, { width: 10 }, { width: 10 }];
+
+  ws.mergeCells('A1:L1');
+  const title = ws.getCell('A1');
+  title.value = `캠페인 성과 — 저니별 (${from} ~ ${to})`;
+  title.font = { bold: true, size: 13 };
+  ws.getRow(1).height = 22;
+
+  const headRow = ws.getRow(3);
+  headRow.values = HEAD;
+  headRow.eachCell((c) => {
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D4ED8' } };
+    c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10.5 };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+  });
+  headRow.height = 20;
+
+  const totalSent = journeys.reduce((s, j) => s + j.sent, 0);
+  const toRow = (name, o) => [name, o.sent, o.sent - o.bounce, (o.sent - o.bounce) / o.sent,
+    o.open, o.open / o.sent, o.click, o.click / o.sent, o.open ? o.click / o.open : 0,
+    o.bounce, o.bounce / o.sent, o.sent / totalSent];
+  const CNT = [2, 3, 5, 7, 10];        // 건수 컬럼 (1-base)
+  const PCT = [4, 6, 8, 9, 11, 12];    // 비율 컬럼
+  const styleRow = (row, zebra) => {
+    row.eachCell({ includeEmpty: true }, (c, col) => {
+      if (CNT.includes(col)) c.numFmt = '#,##0';
+      if (PCT.includes(col)) c.numFmt = '0.0%';
+      c.border = { bottom: { style: 'thin', color: { argb: 'FFE8EAF0' } } };
+      if (zebra) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F6FC' } };
+    });
+  };
+  journeys.forEach((j, i) => styleRow(ws.addRow(toRow(j.name, j)), i % 2 === 1));
+  const sum = (k) => journeys.reduce((s, j) => s + j[k], 0);
+  const total = ws.addRow(toRow('합계', { sent: sum('sent'), open: sum('open'), click: sum('click'), bounce: sum('bounce') }));
+  styleRow(total, false);
+  total.eachCell({ includeEmpty: true }, (c) => {
+    c.font = { bold: true };
+    c.border = { top: { style: 'double', color: { argb: 'FF1D4ED8' } } };
+  });
+
+  ws.views = [{ state: 'frozen', ySplit: 3 }];
+  ws.autoFilter = 'A3:L3';
+
+  const fname = `저니별성과_${from}_${to}.xlsx`;
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fname)}`);
+  await wb.xlsx.write(res);
+  res.end();
+});
+
 // 파일 첨부(드래그&드롭) 업로드 — 확장 패널에 놓은 파일을 저장하고 절대 경로를 돌려준다.
 // 정의서(xlsx/xlsm/csv)는 campaign_definitions\에 저장돼 "정의서 직접 첨부 → STEP 3" 흐름과 그대로 연결되고,
 // 그 외 허용 확장자(스키마 DDL 등)는 uploads\에 저장된다. 실행 파일 등은 거부.

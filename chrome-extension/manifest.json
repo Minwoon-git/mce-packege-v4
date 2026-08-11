@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MCE Bot",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "description": "MCE(SFMC) 화면 위에 캠페인 챗봇을 팝업으로 띄웁니다. 로컬 web-bridge 서버(localhost:3456)가 필요합니다.",
   "host_permissions": ["http://localhost:3456/*"],
   "background": { "service_worker": "background.js" },

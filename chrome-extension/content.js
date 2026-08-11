@@ -69,6 +69,7 @@
   // ── DOM 구성 ─────────────────────────────────────────────────
   const ICONS = {
     history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v4.7l3 1.8"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3.5"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
@@ -362,6 +363,7 @@
         <div class="title">MCE Bot</div>
         <div class="status">대기 중</div>
       </div>
+      <button class="hbtn dash" type="button" title="성과 대시보드">${ICONS.chart}</button>
       <button class="hbtn hist" type="button" title="대화 내역">${ICONS.history}</button>
       <button class="hbtn new" type="button" title="새 대화">${ICONS.plus}</button>
       <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
@@ -811,6 +813,8 @@
     applyPos(); // 버튼을 원래 기준 위치로 복원
   });
   $('.hist').addEventListener('click', () => (view === 'history' ? showChat() : showHistory()));
+  // 성과 대시보드 — web-bridge가 서빙하는 페이지를 새 탭으로 연다
+  $('.dash').addEventListener('click', () => window.open('http://localhost:3456/dashboard', '_blank', 'noopener'));
   // 최대화 ↔ 기본 크기 복원 토글.
   // 기본 크기(448×700)가 아니면(드래그로 늘렸든 최대화든) 복원 아이콘을 보여주고, 누르면 기본 크기로 되돌린다.
   const DEFAULT_SIZE = { w: 448, h: 700 };
