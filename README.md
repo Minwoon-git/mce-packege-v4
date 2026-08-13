@@ -20,18 +20,61 @@ Salesforce Marketing Cloud Engagement (MCE) MCP 서버입니다. Claude Code에�
 `sf-mce-mcp`는 로컬에서 실행되는 서버가 아닌 **Salesforce가 호스팅하는 원격 MCP 서버**입니다.
 
 ```
-https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<세션토큰>/api/mcp
+https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<클라이언트ID>/api/mcp
 ```
 
 - 별도의 서버 설치, 빌드, 실행이 필요 없습니다
-- SFMC 계정(테넌트)마다 고유한 엔드포인트가 자동 할당됩니다
+- 엔드포인트 URL은 계정의 **테넌트 ID(28자 Subdomain)** 와 Public App 패키지의 **Client ID(24자)** 로 구성됩니다
 - 모든 SFMC API 호출은 Salesforce 인프라 내에서 처리됩니다
 
 ---
 
 ## 다른 PC에서 가져와 사용하기 (빠른 시작)
 
-이 저장소를 새 PC로 옮길 때는 아래 3단계면 됩니다. (경로 수정·치환 작업은 필요 없습니다.)
+새 PC 세팅은 **0단계(사전 설치) → 1~3단계(가져오기·연결) → 4단계(인증)** 순서입니다. (경로 수정·치환 작업은 필요 없습니다.)
+
+### 0단계: 사전 설치 (새 PC에 최초 1회)
+
+**① Node.js LTS 설치**
+
+[nodejs.org](https://nodejs.org)에서 LTS 버전 설치. 설치 확인:
+
+```bash
+node -v
+npm -v
+```
+
+> `'node'은(는) 내부 또는 외부 명령...` 이 나오면 Node.js 미설치 또는 PATH 미반영 상태입니다. 설치 후 **터미널을 새로 열어야** 합니다.
+
+**② Claude Code CLI 설치** — 둘 중 하나 선택:
+
+```powershell
+# 방법 1 — PowerShell 네이티브 설치 (Node 불필요, 권장)
+irm https://claude.ai/install.ps1 | iex
+```
+
+```bash
+# 방법 2 — npm 설치 (Node.js 설치 후)
+npm install -g @anthropic-ai/claude-code
+```
+
+설치 후 **터미널을 완전히 닫고 새로 연 다음** 확인:
+
+```bash
+claude --version
+```
+
+**③ Claude 계정 로그인 (최초 1회)**
+
+```bash
+claude
+```
+
+첫 실행 시 브라우저로 Anthropic 계정 로그인이 진행됩니다.
+
+> (선택) xlsx 파싱에 Python을 쓰는 경우 Python도 권장
+
+### 1~3단계: 저장소 가져오기 + MCP 연결
 
 ```bash
 # 1) 저장소 가져오기 — clone 위치/폴더명은 자유
@@ -39,17 +82,46 @@ git clone <레포 URL>
 cd <클론한 폴더>
 
 # 2) 의존성 설치 — node_modules 는 깃에 없으므로 반드시 실행
+#    (MCP 연결과는 무관. xlsx 정의서·PPT 리포트 생성에 필요)
 npm install
 
-# 3) 원격 MCP 서버 연결 (토큰은 PC/계정마다 다름 → 직접 등록)
-claude mcp add --transport http sf-mce-mcp "<발급받은 엔드포인트 URL>"
+# 3) 원격 MCP 서버 연결 — URL은 테넌트별 고정값 재사용
+#    -s user: PC 전체에서 사용 가능하게 등록 (생략 시 현재 폴더 전용)
+claude mcp add -s user --transport http sf-mce-mcp "<테넌트별 엔드포인트 URL>"
 ```
 
-- **사전 요구사항**: 새 PC에 **Node.js**와 **Claude Code CLI**가 설치돼 있어야 합니다. (xlsx 파싱에 Python을 쓰는 경우 Python도 권장)
+### 4단계: SFMC 인증 + 동작 확인
+
+```bash
+claude
+```
+
+프로젝트 폴더에서 실행 후:
+
+1. `/mcp` 입력 → 브라우저에서 **SFMC 계정 로그인** 1회 → `Authentication successful. Connected to sf-mce-mcp.` 확인
+   (이때 로그인하는 SFMC 계정이 해당 테넌트/BU에 접근 가능해야 합니다. URL만으로는 접근 불가)
+2. "저니 목록 보여줘" 같은 읽기 조회가 실시간 응답하면 연결 완료
+
+### 자주 나오는 오류
+
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| `'claude'은(는) 내부 또는 외부 명령...` | Claude Code CLI 미설치 / PATH 미반영 | 0단계 ②로 설치 → **터미널 새로 열기** (그래도 안 되면 재부팅) |
+| `'node'은(는) 내부 또는 외부 명령...` | Node.js 미설치 | 0단계 ①로 설치 → 터미널 새로 열기 |
+| `npm install` 중 `ETIMEDOUT`/`ECONNRESET` | 사내 프록시/네트워크 차단 | 프록시 설정 또는 다른 네트워크에서 재시도 |
+| `npm install` 중 `EPERM`/`EACCES` | OneDrive 동기화·백신 파일 잠금 | OneDrive 밖 경로(예: `C:\work\`)에 clone |
+| `/mcp`에서 서버가 안 보임 | `--transport http` 누락(로컬 stdio로 등록됨) | `claude mcp remove sf-mce-mcp` 후 3단계 명령 그대로 재등록 |
+| 저니 조회 시 권한 오류 | SFMC 로그인 계정의 BU 접근 권한 부족 | 대상 BU 접근 가능한 계정으로 재인증 |
+
+### 참고
+
 - **경로 자동 적용**: `CLAUDE.md`의 절대경로 예시(`C:\Users\...\mce-packege-v2-main`)는 **작성 당시 PC 기준 예시**일 뿐입니다. Claude Code가 실행 시 **현재 작업 디렉토리(cwd)를 프로젝트 루트로 삼아 모든 경로를 자동 적용**하므로, clone 위치가 달라도 그대로 동작합니다. (별도 설치/치환 스크립트 불필요)
 - **로컬 권한 파일**: `.claude/settings.local.json`은 PC마다 다른 **로컬 전용 권한 파일**이라 깃 추적에서 제외돼 있습니다. 새 PC에서는 자동 생성되며, 도구 사용을 승인하면서 권한이 다시 누적됩니다. (공유 권한은 추적되는 `.claude/settings.json`에 있음)
+- **옮길 필요 없는 것**: OAuth 토큰(`.credentials.json` — 새 PC에서 `/mcp` 재인증으로 새로 발급), `node_modules`(재설치), `settings.local.json`(자동 재생성)
+- **(선택) 웹 챗봇**: `web-bridge`에서 `npm install` + `autostart-install.cmd` 실행, Chrome `chrome://extensions` → 개발자 모드 → `chrome-extension` 폴더 로드 (상세: [web-bridge/README.md](web-bridge/README.md))
+- **(선택) Slack 봇**: `slack-bridge/.env`에 토큰 2개(`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`)를 직접 옮겨야 합니다 — `.env`는 깃에 없음 (상세: 아래 **Slack 연동** 절)
 
-> 발급받을 엔드포인트 URL을 모른다면 아래 **설치 및 연결** 1단계(Installed Package)부터 진행해 테넌트별 URL을 발급받으세요.
+> 엔드포인트 URL을 모른다면 아래 **설치 및 연결** 1단계(Installed Package, Public App)부터 진행해 테넌트 ID·Client ID로 URL을 구성하세요.
 
 ---
 
@@ -64,8 +136,9 @@ Marketing Cloud에서 API 연동용 패키지를 생성합니다.
 3. **New** 버튼으로 새 패키지 생성
 4. 패키지 이름 입력 후 **Add Component** 클릭
 5. Component 유형: **API Integration** 선택
-6. Integration 유형: **Server-to-Server** 선택
-7. 아래 권한(Scope) 설정 후 저장:
+6. Integration 유형: **Public App** 선택 (⚠️ Server-to-Server 아님 — 아래 참고)
+7. Redirect URI: 우선 임시로 `https://salesforce.com` 입력 (10번에서 실제 값으로 교체)
+8. 아래 권한(Scope) 설정 후 저장 (AI에게 맡길 작업에 필요한 권한만 부여):
 
 | 카테고리 | 권한 |
 |----------|------|
@@ -78,21 +151,23 @@ Marketing Cloud에서 API 연동용 패키지를 생성합니다.
 | SMS | Read, Write, Send |
 | Push | Read, Write, Send |
 
-8. 저장 후 생성된 **Client ID**, **Client Secret**, **MID(Account ID)** 확인
-9. 인증 URL(`https://xxxxxxxxx.auth.marketingcloudapis.com`)에서 **28자리 Subdomain** 확인
+9. 저장 후 패키지 상세(API Integration 컴포넌트)에서 **Client ID(24자)** 확인
+10. **Authentication Base URI**(`https://<28자리 테넌트ID>.auth.marketingcloudapis.com`)에서 **테넌트 ID(Subdomain, 28자)** 확인
+11. 컴포넌트를 다시 편집해 Redirect URI를 실제 콜백 URL로 교체:
+    `https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<클라이언트ID>/api/mcp/oauth/callback`
 
-> 위에서 확보한 **Client ID / Client Secret / MID / Subdomain**은 Salesforce가 호스팅하는 원격 MCP 서버를 발급받을 때 사용됩니다.
-> 이 값들로 테넌트별 MCP 엔드포인트 URL(아래 2단계의 `https://...sfdcfc.net/t/<테넌트ID>/c/<세션토큰>/api/mcp`)이 생성되며, 인증은 이 URL에 포함된 세션 토큰으로 처리됩니다.
-> (로컬에 Client ID/Secret를 직접 입력하는 과정은 없으며, 발급받은 URL을 2단계에서 등록합니다.)
+> MCP 엔드포인트 URL은 위 두 값으로 직접 구성합니다: `https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<클라이언트ID>/api/mcp` (US 스택 기준. EU 스택은 `sfdc-yzvdd4`)
+> 인증은 URL 등록 후 `/mcp`에서 뜨는 **사용자 OAuth 로그인**으로 처리됩니다. Client Secret을 로컬에 입력하는 과정은 없습니다.
+> ⚠️ **Server-to-Server** 패키지는 REST/SOAP API 직접 호출(client_credentials)용이며, MCP 연결에는 **Public App**만 사용합니다.
 
 ---
 
 ### 2단계: Claude Code에 MCP 서버 연결
 
-1단계에서 발급받은 **원격 MCP 엔드포인트 URL**을 HTTP transport로 등록합니다.
+1단계에서 확보한 테넌트 ID·Client ID로 구성한 **원격 MCP 엔드포인트 URL**을 HTTP transport로 등록합니다.
 
 ```bash
-claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<세션토큰>/api/mcp"
+claude mcp add --transport http sf-mce-mcp "https://mai-mce-mcp-cdp1.sfdc-yfeipo.svc.sfdcfc.net/t/<테넌트ID>/c/<클라이언트ID>/api/mcp"
 ```
 
 > ⚠️ 이 서버는 **원격 HTTP MCP 서버**이므로 `--transport http`와 URL을 반드시 지정해야 합니다.
