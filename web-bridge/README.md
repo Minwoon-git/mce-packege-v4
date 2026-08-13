@@ -54,7 +54,16 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 - `--dangerously-skip-permissions`로 실행 — 사람이 "허용"을 누를 수 없는 헤드리스 구조이기 때문 (slack-bridge와 동일). 외부 공개 시 반드시 인증 계층 추가 필요
 - **파일 수정 차단 지침** — 챗봇 실행에는 시스템 지침(`--append-system-prompt`)이 붙어, 저장소 코드·설정·문서를 고쳐달라는 직접 요청은 거부하고 Claude Code에서 하도록 안내한다. 캠페인 워크플로 산출물(정의서 xlsx·리포트·저니 이력 등) 생성은 정상 동작. 지침 기반이라 100% 강제는 아님
 - 탭을 닫아도 진행 중 작업은 계속됨 — 다시 열면 같은 세션으로 이어짐
-- 비용 표시는 Claude Team 구독 한도에서 차감되는 환산 참고치 (별도 청구 아님)
+
+## 사용 계정 · 사용량 (중요)
+
+챗봇은 매 요청마다 이 PC의 `claude` CLI(`claude -p`)를 실행한다([`server.js`](server.js)의 `spawn('claude', …)`). 따라서:
+
+- 챗봇은 **이 PC의 `claude` CLI에 로그인된 계정**으로 동작하며, **토큰·사용량도 그 계정에서 차감**된다 — 터미널에서 Claude Code를 쓰는 것과 과금상 동일한 행위다. (데스크톱 Claude 앱에 로그인한 계정과 **다를 수 있다.**)
+- 캠페인 생성처럼 **하위 워커(`Agent`)에 위임하는 요청은 한 번에 여러 에이전트 세션이 돌아** 단순 조회보다 사용량을 많이 쓴다.
+- 챗봇이 `You've hit your session limit · resets …` 류의 답을 하면 봇 오류가 아니라 **CLI 로그인 계정의 사용 한도** 도달이다. 현재 계정 확인: `C:\Users\<사용자>\.claude.json` 의 `oauthAccount.emailAddress` 값.
+- CLI가 요청마다 돌려주는 비용 환산치(`total_cost_usd`)를 서버가 `result` 이벤트의 `cost`로 내려보내지만, **현재 Chrome 확장 UI는 이 값을 표시하지 않는다** (서버만 전달, 화면 표시 없음).
+- 계정 변경은 slack-bridge와 동일하다 — 터미널에서 `claude` → `/logout` → `/login` 후 **브릿지 재시작**(`stop-web.cmd` → `run-web.cmd`). 이는 사용량/과금 주체만 바꾸며 SFMC(MCE) 접근은 별도 MCP 인증이라 무관하다. (상세: [`slack-bridge/README.md`](../slack-bridge/README.md))
 
 ## SFMC Custom App 등록 (선택, 추후)
 

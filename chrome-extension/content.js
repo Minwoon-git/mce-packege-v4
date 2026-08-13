@@ -493,7 +493,7 @@
     <div class="empty">
       <div class="mark"><img draggable="false" alt="" src="${FAB_IMG}"></div>
       <h2>무엇을 도와드릴까요?</h2>
-      <p>캠페인 생성 · 저니 조회 · 세팅 점검을 한 문장으로 요청하세요</p>
+      <p>MCE에서 필요한 작업을 요청해주세요</p>
       <div class="chips">
         <button class="chip" data-msg="생성 가능한 캠페인 추천해줘"><span class="ci">✨</span>생성 가능한 캠페인 추천</button>
         <button class="chip" data-msg="최근 생성된 저니 목록 조회해줘"><span class="ci">🧭</span>최근 저니 목록 조회</button>
