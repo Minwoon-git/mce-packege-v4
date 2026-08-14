@@ -19,7 +19,8 @@
 
 > ⭐ **이 고객사 원천은 다중 엔티티(정규화된 여러 테이블)다.** 진단은 이들을 JOIN·집계해 만든 **고객 프로파일 DE(`RECON_Profile`)** 위에서 수행한다(빌드 방법 = [`_common.md`](_common.md) §6-0). 진단 `SEG_*`와 STEP 1은 이 프로파일을 읽는다.
 
-**원천 엔티티 (다중 테이블 — 위치 `Data Extensions > test > mce-package`, categoryId 93897):**
+**원천 엔티티 (다중 테이블 — 위치 `Data Extensions > test > mce-package > 01_RAW(원천)`, categoryId 96524):**
+> 📁 **폴더 재편(2026-08-13)**: `mce-package`(93897) 하위를 4폴더로 분리 — `01_RAW(원천)` **96524** / `02_진단(프로파일·SEG)` **96525** / `03_캠페인진입(ENTRY)` **96526** / `04_운영로그(기본세팅)` **96527**.
 
 | 엔티티 | DE Key | 조인키 | 도출되는 파생값 |
 |---|---|---|---|
@@ -30,7 +31,7 @@
 | 쿠폰 | `RAW_Coupons_DE` | coupon_id (PK), member_id | `unused_coupon_count` |
 
 - **관계**: 고객 1:N 주문, 주문 1:N 상세, 상세 N:1 제품, 고객 1:N 쿠폰. Contact Key = `member_id`.
-- **분석 base(진단 소스) = `RECON_Profile`** — Key `RECON_Profile_DE`, id `dd4657b0-3176-f111-a5e1-5cba2c19fe48`, categoryId 93897. 위 5테이블을 JOIN·집계해 **1행=1고객**으로 통합한 프로파일. 빌드 쿼리 = `BUILD_RECON_Profile`(§6-0 패턴), rowCount ≈ 100,000.
+- **분석 base(진단 소스) = `RECON_Profile`** — Key `RECON_Profile_DE`, id `dd4657b0-3176-f111-a5e1-5cba2c19fe48`, categoryId 96525(`02_진단`). 위 5테이블을 JOIN·집계해 **1행=1고객**으로 통합한 프로파일. 빌드 쿼리 = `BUILD_RECON_Profile`(§6-0 패턴), rowCount ≈ 100,000.
   - **현재 materialize된 컬럼(11)**: `member_id`, `order_count`, `total_spent`, `last_order_date`, `preferred_category`, `unused_coupon_count`, `last_login_date`, `email_consent`, `sms_consent`, `has_abandoned_cart`, `cart_total_amount` → **핵심 진단 6캠페인(2차구매·이탈·휴면·동의·장바구니·미전환) 커버**.
   - **확장 컬럼(생일·등급·쿠폰/포인트 만료 캠페인용)**: `birthday`·`grade`·`region`·`signup_date`·`points_balance`·`points_expire_date`는 `RAW_Customers`에, `coupon_expire_date`(MIN 미사용)는 `RAW_Coupons`에 있으므로, 해당 캠페인이 필요할 때 `BUILD_RECON_Profile`에 승계 컬럼으로 추가한다.
   - *(2026-07-03 다중 엔티티로 전환. 이전엔 단일 평탄화 DE `Customer_Profile`(CD_Customer_Profile_DE)을 직접 사용. RECON_Profile은 그것과 파생값 **완전 일치** — 10만 전수 대조 불일치 **0**으로 검증됨.)*
@@ -131,7 +132,7 @@
 > ⭐ 특정/커스텀 세그먼트는 이 목록에 없어도 AI가 §1+§2로 즉석 생성한다(STEP 1-6 발송 DE도 마찬가지).
 > ※ 이미 계정에 존재하는 `SEG_*`는 이 예시 세트가 이전에 생성된 것이다(재생성 말고 rowCount만 읽음 — [`_common.md`](_common.md) 6-1).
 
-카운트 DE 위치: **`Data Extensions > test > mce-package`** (categoryId `93897`). **member_id 1컬럼·비-sendable**, rowCount=인원. **발송 DE 아님.**
+카운트 DE 위치: **`Data Extensions > test > mce-package > 02_진단(프로파일·SEG)`** (categoryId `96525`). **member_id 1컬럼·비-sendable**, rowCount=인원. **발송 DE 아님.**
 
 | 세그먼트 | 카운트 DE Key | 근거 지표(§2) |
 |---|---|---|

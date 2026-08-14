@@ -6,7 +6,8 @@ metadata:
 ---
 
 ## Data Extension 폴더
-- `93897` = "mce-package" (Data Extensions > test > mce-package). ①②(SENDLOG_*)와 ③(IPWARM_Targets) 모두 이 categoryId 사용. SSOT 문서와 일치 확인됨(2026-08-05).
+- `93897` = "mce-package" (Data Extensions > test > mce-package) — **2026-08-13 하위 4폴더로 재편**: `01_RAW(원천)` **96524** / `02_진단(프로파일·SEG)` **96525** / `03_캠페인진입(ENTRY)` **96526** / `04_운영로그(기본세팅)` **96527**.
+- ①②(SENDLOG_*)·③(IPWARM_Targets)·AUDITLOG_* = **96527**(04_운영로그)로 이동됨. 신규 기본세팅 DE도 96527에 생성할 것.
 - `95720` = "MCE_Basic_Setup" (Data Extensions 루트 직속) — 존재하지만 실제 DE들은 93897에 생성됨. 혼동 주의.
 
 ## Content Builder 폴더 — ⚠️ SSOT(email-standard.md)와 계정 실제 상태 불일치
@@ -25,7 +26,7 @@ metadata:
 이 4개 값은 신규 EMAILV2 액티비티(캠페인/인프라성 저니 불문) 생성 시 그대로 재사용 가능. `sfmc_get_send_classifications`/`sfmc_get_sender_profiles`(SOAP)로 재확인 가능하나, 매칭되는 값이 위와 같았음.
 
 ## IP 워밍 저니 생성 결과 (2026-08-05)
-- DE `IPWARM_Targets` (key `ipwarm_targets`, GUID `55571187-df90-f111-a5e1-5cba2c196e68`, categoryId 93897)
+- DE `IPWARM_Targets` (key `ipwarm_targets`, GUID `55571187-df90-f111-a5e1-5cba2c196e68`, categoryId 96527 — 2026-08-13 04_운영로그로 이동)
 - Email `EML_IPWarming_Base` (Content Builder id 181352, legacyId **67366** — Journey EMAILV2의 emailId로 사용)
 - Event Definition `IPWarming_Ramp-Entry-20260805` (id `535cfc0d-97ce-49aa-9e67-607d1cfabbda`, type EmailAudience, schedule 없이 생성 = On Activation 모드, automationId `c5d991b4-1d74-4370-83bb-89f0c574bf3f`는 미사용/미PATCH)
 - Journey `IPWarming_Ramp` (id `f739881f-7eec-4f33-bc0e-88e4041cdc33`, key `IPWarming_Ramp-20260805`, status Draft, entryMode OnceAndDone) — Decision Split(WarmingStage 6분기) + EMAILV2 x6(D1/D2-3/W1/W2/W3/W4), 발행 안 함.
