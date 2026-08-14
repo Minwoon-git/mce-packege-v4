@@ -61,7 +61,7 @@
   }
 
   let busy = false;
-  let view = 'chat'; // 'chat' | 'history'
+  let view = 'chat'; // 'chat' | 'history' | 'dash'
   // 진행 중인 턴의 봇 말풍선 DOM — 패널을 닫았다 열어도(showChat 재렌더) 같은 노드를 다시 붙여
   // 스트리밍 업데이트("처리 중…"→결과)가 끊기지 않게 한다
   let liveTurn = null; // { convId, node }
@@ -297,6 +297,65 @@
     .hitem .del:hover { color: #ef4444; background: var(--bg); }
     .hitem .del svg { width: 15px; height: 15px; }
     .hist-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0; }
+
+    /* ── 성과 대시보드 뷰 (패널 내장) ── */
+    .dash-meta { font-size: 11px; color: var(--muted); margin: 0 4px 10px; display: flex; justify-content: space-between; gap: 8px; }
+    .rangechips { display: flex; gap: 6px; margin: 0 0 10px; }
+    .rchip {
+      border: 1px solid var(--border); background: var(--card); color: var(--muted);
+      border-radius: 999px; padding: 4px 13px; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .rchip:hover { border-color: var(--accent); }
+    .rchip.active { background: var(--soft); color: var(--accent); border-color: var(--accent); }
+    .xticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+    .sparkcard .tip {
+      position: absolute; top: 8px; left: 4px; z-index: 5; pointer-events: none;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      box-shadow: var(--shadow-sm); padding: 5px 9px; font-size: 11px; white-space: nowrap;
+    }
+    .sparkcard .tip b { color: var(--accent); margin-right: 4px; }
+    .dash-sec { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .4px; margin: 16px 4px 8px; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 11px 13px; box-shadow: var(--shadow-sm);
+    }
+    .kpi .kl { font-size: 11.5px; color: var(--muted); }
+    .kpi .kv { font-size: 19px; font-weight: 800; letter-spacing: -.4px; margin-top: 2px; }
+    .kpi .kd { font-size: 11px; margin-top: 3px; font-weight: 600; }
+    .kpi .kd.up { color: #10b981; }
+    .kpi .kd.down { color: #ef4444; }
+    .kpi .kd.flat { color: var(--muted); }
+    .sparkcard {
+      position: relative;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 12px 13px 9px; box-shadow: var(--shadow-sm);
+    }
+    .sparkcard svg { width: 100%; height: 64px; display: block; }
+    .legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+    .dtwrap {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .dtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .dtable th, .dtable td { padding: 8px 11px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .dtable th:first-child, .dtable td:first-child { text-align: left; }
+    .dtable td:first-child { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    .dtable th { background: var(--soft); color: var(--accent); font-size: 11.5px; font-weight: 700; }
+    .dtable tr:last-child td { border-bottom: none; }
+    .ins {
+      background: var(--card); border: 1px solid var(--border); border-left-width: 4px;
+      border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow-sm);
+    }
+    .ins .it { font-size: 12.5px; font-weight: 700; line-height: 1.45; }
+    .ins .ib { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.55; }
+    .ins .ia {
+      margin-top: 8px; border: 1px solid var(--border); background: var(--soft); color: var(--accent);
+      border-radius: 999px; padding: 3px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
+    .ins .ia:hover { border-color: var(--accent); }
 
     /* ── 파일 첨부 (드래그&드롭) ── */
     .dropzone {
@@ -567,6 +626,216 @@
     }
   }
 
+  // ── 성과 대시보드 뷰 (패널 내장) ────────────────────────────
+  // 📊 버튼 → web-bridge의 /api/dashboard-data(SENDLOG 집계 JSON)를 background 경유로 받아
+  // KPI 카드 + 추이 스파크라인 + 저니 TOP + 인사이트를 패널 안에 즉시 렌더한다. Claude 호출 없음(무비용).
+  const fmtN = (n) => Number(n || 0).toLocaleString('ko-KR');
+  const rate = (a, b) => (b ? (a / b) * 100 : 0);
+  let dashData = null; // 마지막 조회 데이터 — 기간 전환 시 재조회 없이 재렌더
+  let dashRange = 14; // 기간 필터 (7 | 14 | 30일)
+
+  function kpiCard(label, value, delta, unit, invert) {
+    // delta: 이전 동일 기간 대비 변화(null이면 비교 기간 부족). invert=true면 감소가 좋은 지표(바운스)
+    let cls = 'flat', txt = '비교 기간 없음';
+    if (delta !== null) {
+      const d = Math.round(delta * 10) / 10;
+      if (Math.abs(d) >= 0.1) {
+        cls = (invert ? d < 0 : d > 0) ? 'up' : 'down';
+        txt = `${d > 0 ? '▲' : '▼'} ${Math.abs(d)}${unit} vs 이전 ${dashRange}일`;
+      } else {
+        txt = '변화 없음';
+      }
+    }
+    const div = document.createElement('div');
+    div.className = 'kpi';
+    div.innerHTML = `<div class="kl"></div><div class="kv"></div><div class="kd ${cls}"></div>`;
+    div.querySelector('.kl').textContent = label;
+    div.querySelector('.kv').textContent = value;
+    div.querySelector('.kd').textContent = txt;
+    return div;
+  }
+
+  function trendCard(daily) {
+    // 선택 기간의 발송·오픈 추이 — 라이브러리 없이 SVG polyline + hover 시 일자별 수치 툴팁
+    const rows = daily.slice(-dashRange);
+    const max = Math.max(1, ...rows.map((r) => r.sent));
+    const W = 300, H = 64, PAD = 4;
+    const xAt = (i) => PAD + (i / Math.max(1, rows.length - 1)) * (W - PAD * 2);
+    const yAt = (v) => H - PAD - ((v || 0) / max) * (H - PAD * 2);
+    const pts = (key) => rows.map((r, i) => `${xAt(i).toFixed(1)},${yAt(r[key]).toFixed(1)}`).join(' ');
+    const fmtD = (iso) => {
+      const d = new Date(iso + 'T00:00:00');
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    };
+
+    const card = document.createElement('div');
+    card.className = 'sparkcard';
+    card.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        <line class="guide" x1="0" x2="0" y1="0" y2="${H}" stroke="var(--muted)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" visibility="hidden"/>
+        <polyline points="${pts('sent')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+        <polyline points="${pts('open')}" fill="none" stroke="#34d399" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="xticks"><span></span><span></span><span></span></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>발송</span>
+        <span><i style="background:#34d399"></i>오픈</span>
+        <span style="margin-left:auto">최근 ${rows.length}일</span>
+      </div>
+      <div class="tip" hidden></div>`;
+    const ticks = card.querySelectorAll('.xticks span');
+    ticks[0].textContent = fmtD(rows[0].date);
+    ticks[1].textContent = rows.length > 2 ? fmtD(rows[Math.floor((rows.length - 1) / 2)].date) : '';
+    ticks[2].textContent = fmtD(rows[rows.length - 1].date);
+
+    // hover 툴팁 — 마우스 x좌표를 가장 가까운 날짜 인덱스로 환산해 세로 가이드선 + 수치 표시
+    const svg = card.querySelector('svg');
+    const guide = card.querySelector('.guide');
+    const tip = card.querySelector('.tip');
+    svg.addEventListener('mousemove', (e) => {
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width) return;
+      const idx = Math.min(rows.length - 1, Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * (rows.length - 1))));
+      const r = rows[idx];
+      guide.setAttribute('x1', xAt(idx));
+      guide.setAttribute('x2', xAt(idx));
+      guide.setAttribute('visibility', 'visible');
+      tip.hidden = false;
+      tip.innerHTML = '<b></b><span></span>';
+      tip.firstElementChild.textContent = fmtD(r.date);
+      tip.lastElementChild.textContent = `발송 ${fmtN(r.sent)} · 오픈 ${fmtN(r.open)} · 클릭 ${fmtN(r.click)} · 바운스 ${fmtN(r.bounce)}`;
+      const cardRect = card.getBoundingClientRect();
+      const x = Math.max(4, Math.min(e.clientX - cardRect.left + 12, cardRect.width - tip.offsetWidth - 6));
+      tip.style.left = `${x}px`;
+    });
+    svg.addEventListener('mouseleave', () => {
+      guide.setAttribute('visibility', 'hidden');
+      tip.hidden = true;
+    });
+    return card;
+  }
+
+  function showDash() {
+    view = 'dash';
+    titleEl.textContent = '성과 대시보드';
+    footEl.style.display = 'none';
+    bodyEl.innerHTML = '<div class="hist-empty">불러오는 중…</div>';
+    chrome.runtime.sendMessage({ type: 'getDash' }, (data) => {
+      if (view !== 'dash') return; // 기다리는 사이 다른 화면으로 이동함
+      if (chrome.runtime.lastError || !data || !Array.isArray(data.daily) || !data.daily.length) {
+        bodyEl.innerHTML =
+          '<div class="hist-empty">대시보드 데이터를 불러오지 못했습니다.<br>web-bridge 서버 상태를 확인해 주세요.</div>';
+        return;
+      }
+      renderDash(data);
+    });
+  }
+
+  function renderDash(data) {
+    dashData = data;
+    bodyEl.innerHTML = '';
+    const daily = data.daily; // 날짜 오름차순
+    const cur = daily.slice(-dashRange);
+    const prev = daily.slice(-dashRange * 2, -dashRange);
+    const hasPrev = prev.length === dashRange; // 이전 동일 기간이 온전히 있어야 비교 표시
+    const sum = (rows, k) => rows.reduce((a, r) => a + (r[k] || 0), 0);
+    const cs = sum(cur, 'sent'), co = sum(cur, 'open'), cc = sum(cur, 'click'), cb = sum(cur, 'bounce');
+    const ps = sum(prev, 'sent'), po = sum(prev, 'open'), pc = sum(prev, 'click'), pb = sum(prev, 'bounce');
+
+    const meta = document.createElement('div');
+    meta.className = 'dash-meta';
+    const srcLabel = data.source === 'sample' ? '⚠ 샘플 데이터' : 'SENDLOG_History DE';
+    meta.innerHTML = '<span></span><span></span>';
+    meta.firstElementChild.textContent = `데이터 소스: ${srcLabel}`;
+    meta.lastElementChild.textContent = data.generatedAt ? `갱신 ${relTime(new Date(data.generatedAt).getTime())}` : '';
+    bodyEl.appendChild(meta);
+
+    // 기간 필터 — 재조회 없이 같은 데이터로 즉시 재렌더
+    const chips = document.createElement('div');
+    chips.className = 'rangechips';
+    for (const n of [7, 14, 30]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rchip' + (dashRange === n ? ' active' : '');
+      b.textContent = `${n}일`;
+      b.addEventListener('click', () => {
+        if (dashRange === n) return;
+        dashRange = n;
+        renderDash(dashData);
+      });
+      chips.appendChild(b);
+    }
+    bodyEl.appendChild(chips);
+
+    const kpis = document.createElement('div');
+    kpis.className = 'kpis';
+    kpis.append(
+      kpiCard(`발송 (${dashRange}일)`, fmtN(cs), hasPrev && ps ? ((cs - ps) / ps) * 100 : null, '%', false),
+      kpiCard('오픈율', `${(Math.round(rate(co, cs) * 10) / 10)}%`, hasPrev && ps ? rate(co, cs) - rate(po, ps) : null, '%p', false),
+      kpiCard('클릭율', `${(Math.round(rate(cc, cs) * 10) / 10)}%`, hasPrev && ps ? rate(cc, cs) - rate(pc, ps) : null, '%p', false),
+      kpiCard('바운스율', `${(Math.round(rate(cb, cs) * 10) / 10)}%`, hasPrev && ps ? rate(cb, cs) - rate(pb, ps) : null, '%p', true),
+    );
+    bodyEl.appendChild(kpis);
+
+    const secTrend = document.createElement('div');
+    secTrend.className = 'dash-sec';
+    secTrend.textContent = '발송·오픈 추이';
+    bodyEl.append(secTrend, trendCard(daily));
+
+    const secJ = document.createElement('div');
+    secJ.className = 'dash-sec';
+    secJ.textContent = '저니별 성과 (전체 기간)';
+    bodyEl.appendChild(secJ);
+    const wrap = document.createElement('div');
+    wrap.className = 'dtwrap';
+    const tbl = document.createElement('table');
+    tbl.className = 'dtable';
+    tbl.innerHTML = '<thead><tr><th>저니</th><th>발송</th><th>오픈율</th><th>클릭율</th></tr></thead><tbody></tbody>';
+    const tb = tbl.querySelector('tbody');
+    for (const j of (data.journeys || []).slice().sort((a, b) => b.sent - a.sent).slice(0, 6)) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td></td><td></td><td></td><td></td>';
+      tr.children[0].textContent = j.name;
+      tr.children[0].title = j.name;
+      tr.children[1].textContent = fmtN(j.sent);
+      tr.children[2].textContent = `${Math.round(rate(j.open, j.sent) * 10) / 10}%`;
+      tr.children[3].textContent = `${Math.round(rate(j.click, j.sent) * 10) / 10}%`;
+      tb.appendChild(tr);
+    }
+    wrap.appendChild(tbl);
+    bodyEl.appendChild(wrap);
+
+    if (Array.isArray(data.insights) && data.insights.length) {
+      const secI = document.createElement('div');
+      secI.className = 'dash-sec';
+      secI.textContent = '인사이트';
+      bodyEl.appendChild(secI);
+      const COLORS = { good: '#10b981', warning: '#f59e0b', serious: '#ef4444' };
+      for (const ins of data.insights) {
+        const card = document.createElement('div');
+        card.className = 'ins';
+        card.style.borderLeftColor = COLORS[ins.level] || 'var(--accent)';
+        card.innerHTML = '<div class="it"></div><div class="ib"></div>';
+        card.querySelector('.it').textContent = ins.title || '';
+        card.querySelector('.ib').textContent = ins.body || '';
+        if (ins.action) {
+          const btn = document.createElement('button');
+          btn.className = 'ia';
+          btn.type = 'button';
+          btn.textContent = `🤖 ${ins.action}`;
+          btn.addEventListener('click', () => {
+            // 인사이트의 추천 액션을 채팅으로 바로 요청 (이때만 Claude 호출)
+            showChat();
+            sendMessage(ins.action);
+          });
+          card.appendChild(btn);
+        }
+        bodyEl.appendChild(card);
+      }
+    }
+    bodyEl.scrollTop = 0;
+  }
+
   // ── 진행 과정 표시 ──────────────────────────────────────────
   function progressUI(bubble) {
     const progress = document.createElement('div');
@@ -813,8 +1082,8 @@
     applyPos(); // 버튼을 원래 기준 위치로 복원
   });
   $('.hist').addEventListener('click', () => (view === 'history' ? showChat() : showHistory()));
-  // 성과 대시보드 — web-bridge가 서빙하는 페이지를 새 탭으로 연다
-  $('.dash').addEventListener('click', () => window.open('http://localhost:3456/dashboard', '_blank', 'noopener'));
+  // 성과 대시보드 — 패널 안 대시보드 뷰로 전환 (다시 누르면 채팅으로 복귀)
+  $('.dash').addEventListener('click', () => (view === 'dash' ? showChat() : showDash()));
   // 최대화 ↔ 기본 크기 복원 토글.
   // 기본 크기(448×700)가 아니면(드래그로 늘렸든 최대화든) 복원 아이콘을 보여주고, 누르면 기본 크기로 되돌린다.
   const DEFAULT_SIZE = { w: 448, h: 700 };

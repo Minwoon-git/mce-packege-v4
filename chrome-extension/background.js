@@ -23,6 +23,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  if (msg && msg.type === 'getDash') {
+    // 성과 대시보드 데이터 — 챗봇 패널 안의 대시보드 뷰가 사용 (Claude 호출 없음)
+    fetch(`${BRIDGE}/api/dashboard-data`)
+      .then((r) => r.json())
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
   if (msg && msg.type === 'upload') {
     // 파일 첨부(드래그&드롭) — content.js가 base64로 넘긴 파일을 web-bridge에 저장하고 절대 경로를 돌려준다
     try {
