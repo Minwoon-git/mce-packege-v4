@@ -46,6 +46,25 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 - `GET /dashboard` — **캠페인 성과 대시보드** (정적 HTML, 챗봇 헤더 📊 버튼으로 열림). KPI 타일(전기간 대비)·일별 발송량·오픈/클릭률 추이·저니별 성과(막대+표)·인사이트/다음 캠페인 제안 카드, 기간 필터(7/14/30일 + 날짜 직접 지정), 다크모드 토글, 인쇄(Ctrl+P) 최적화. 고객사별 테마: 데이터 JSON의 `theme` 객체가 CSS 변수를 덮어씀
 - `POST /api/journey-xlsx` — 저니별 성과를 **서식 입힌 엑셀(xlsx)** 로 생성 (대시보드 "⬇ 엑셀" 버튼). 타이틀·헤더 색·퍼센트 서식·줄무늬·합계행·자동필터·고정 헤더 포함 (exceljs)
 - `GET /api/dashboard-data` — 대시보드 데이터 JSON. `reports\dashboard-data.json`(실데이터 — 봇/배치가 SENDLOG 집계로 생성)이 있으면 그걸, 없으면 `dashboard\sample-data.json`(샘플, ⚠ 배지 표시)을 서빙
+
+### 🔜 [미적용] 대시보드 데이터 자동 갱신 — 설계 메모 (추후 적용)
+
+> 현재 데이터 흐름: `SENDLOG_History` DE는 SFMC Automation(`AUTO_SendLog_Daily`, 매일 02:00)이 자동 갱신하지만,
+> 대시보드가 실제로 읽는 `reports\dashboard-data.json`은 **수동 생성** 상태다 — DE가 갱신돼도 대시보드 숫자는 멈춰 있다.
+> (2026-08-14 확정: "열 때 자동 갱신" 방식으로 추후 구현하기로 함. 아직 코드 반영 안 됨.)
+
+구현 방식 (server.js `/api/dashboard-data`에 로직 추가):
+
+1. 요청이 오면 `reports\dashboard-data.json`의 수정 시각을 확인
+2. **24시간 이내면** 그대로 서빙 (현재와 동일)
+3. **24시간 경과(또는 파일 없음)면** 기존 파일을 즉시 서빙하되, 백그라운드로 갱신을 1회 트리거:
+   - `claude -p "SENDLOG_History DE를 일별·저니별로 집계해 reports\dashboard-data.json을 갱신해줘"` 헤드리스 실행 (기존 `/api/chat`과 같은 spawn 패턴, `--dangerously-skip-permissions`)
+   - JSON 포맷은 기존 파일과 동일 유지: `{ generatedAt, source: "sendlog_history", daily[], journeys[], insights[] }`
+   - **중복 실행 잠금** 필수: 갱신 실행 중 플래그를 두고, 진행 중이면 재트리거하지 않음 (동시에 여러 탭이 열려도 1회만)
+4. 갱신 완료 후의 요청부터 새 숫자가 보임 (화면에는 "갱신 N시간 전" 표시로 상태 확인 가능)
+
+특성: 별도 스케줄 불필요, 보는 날에만 하루 최대 1회 Claude 실행(좌석 사용량 소량), PC 꺼짐 영향 없음.
+주의: SFMC 배치(02:00, 계정 표준시) 직전에 열면 "어제까지" 데이터로 갱신될 수 있음 — 정상 동작.
 - `POST /api/upload?name=` — 파일 첨부(드래그&드롭) 업로드. raw body로 받은 파일을 저장하고 `{ path, name }` 반환. 정의서(xlsx/xlsm/csv)는 `campaign_definitions\`, 그 외 허용 확장자(txt/sql/md/json)는 `uploads\`에 저장. 동명 파일은 타임스탬프를 붙여 보존, 그 외 확장자는 403, 최대 25MB
 - `GET /api/file?path=` — 캠페인 산출물 다운로드. 확장이 답변 속 산출물 경로(정의서 xlsx·분석 리포트 등)를 이 링크(📎 칩)로 바꿔 말풍선에서 바로 내려받게 함. **허용 범위: `campaign_definitions\`·`reports\` 폴더 안의 xlsx·xlsm·csv·pptx·pdf·png·md·html만** — 그 외 경로/확장자는 403 (경로 조작 방지)
 
