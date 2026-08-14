@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-어반몰(UrbanMall) — 커머스 온보딩 예시 고객사. 담당: 이서준 매니저.
+어반몰(UrbanMall) — **데모/시연용 가상 고객사**(실제 운영 고객사 아님, 활성 고객사는 ecommerce-default). 커머스 온보딩 STEP 0 예시. 담당(시나리오상): 이서준 매니저.
 
 **원천 5테이블** (조인키 = `MBR_ID`, 전 테이블 공통):
 `MEMBER_INFO`(회원, PK MBR_ID) · `ORDER_MST`(주문, PK ORDER_ID, FK MBR_ID) · `ORDER_ITEM`(주문상세, PK ORDER_ITEM_SEQ, FK ORDER_ID·ITEM_CD) · `ITEM_MST`(상품, PK ITEM_CD) · `COUPON_ISSUE`(쿠폰, PK COUPON_ID, FK MBR_ID).

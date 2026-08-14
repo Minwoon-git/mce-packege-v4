@@ -1,5 +1,11 @@
 # 분석 가이드 — 고객사: 어반몰 (UrbanMall)
 
+> 🏷️ **데모 온보딩 예시 산출물 — 실제 운영 고객사 아님.**
+> 어반몰은 STEP 0(스키마 분석) 시연용 **가상 고객사**이며, 이 문서는 "STEP 0가 자동 생성하는 활성 고객사 가이드가 실제로 이렇게 나온다"는 **작성 완성 예시**다.
+> **현재 활성 고객사는 `ecommerce-default`** (SKILL.md "활성 고객사" 절) — STEP 1~4는 이 문서를 읽지 않는다.
+> 새 고객사 온보딩 시 이 문서를 손으로 복사·수정하지 말 것 — STEP 0가 `analysis-guide/<고객사>.md`를 자동 생성한다(SSOT: `reference/schema-mapping.md`).
+> 문서 안의 DE ID·categoryId는 데모 BU(Salesforce_milvus_edu)에 실재하는 값이므로, 어반몰 데모를 이어갈 때만 유효하다.
+
 > 🤖 **STEP 0 자동 생성 문서 — 사람이 검토 요망.**
 > 최초 생성 **2026-08-07** · **Phase B 완료 2026-08-13** · 생성 주체 `mce-schema-agent` (STEP 0)
 > 원천: `docs/onboarding-kit/작성예시_어반몰/` (데이터정보 템플릿 xlsx + `ERD_urbanmall.pdf` + CSV 샘플 5종)
