@@ -112,7 +112,7 @@
     /* ── 플로팅 버튼 (캐릭터 이미지 fab.png, v1.11.0~) ── */
     .fab {
       position: fixed; right: 26px; bottom: 26px; z-index: 2147483647;
-      width: 76px; height: 76px; border: none; cursor: pointer;
+      width: 84px; height: 84px; border: none; cursor: pointer;
       background: none; padding: 0;
       display: grid; place-items: center;
       transition: transform .2s cubic-bezier(.34,1.56,.64,1);
@@ -1307,11 +1307,33 @@
     savedPos = null; // 사용자가 직접 옮겼으면 복원 시에도 이 위치를 유지한다
   });
 
-  // ── 계정 게이트: MCP에 연결된 계정의 MCE 화면에서만 UI 노출 ──
+  // ── 계정 게이트 + 전역 ON/OFF: 두 조건을 모두 만족할 때만 UI 노출 ──
   // 서버(web-bridge/config.json)의 allowedAccounts에 적힌 계정명이 페이지에 보일 때만 버튼을 띄운다.
   // 게이트 미설정(빈 배열)이거나 서버에 못 붙으면 기존대로 항상 노출한다(어차피 요청 시 오류로 드러남).
   fab.hidden = true;
   const VER = chrome.runtime.getManifest().version;
+  // 툴바 확장 아이콘 클릭으로 끈 상태(chrome.storage.local.botDisabled) — 게이트와 별개 축
+  let gateOk = false;
+  let botOff = false;
+  const applyVisibility = () => {
+    fab.hidden = !(gateOk && !botOff);
+    if (botOff && !panel.hidden) {
+      // OFF 전환 시 열려 있던 패널도 닫는다 (대화 내용은 저장돼 있어 다시 켜면 그대로)
+      panel.hidden = true;
+      fab.style.display = '';
+      applyPos();
+    }
+  };
+  chrome.storage.local.get('botDisabled', (v) => {
+    botOff = !!(v && v.botDisabled);
+    applyVisibility();
+  });
+  chrome.storage.onChanged.addListener((ch, area) => {
+    if (area === 'local' && ch.botDisabled) {
+      botOff = !!ch.botDisabled.newValue;
+      applyVisibility();
+    }
+  });
   chrome.runtime.sendMessage({ type: 'getConfig' }, (cfg) => {
     if (!cfg) {
       // 서버 미응답 → 버튼 미노출 (서버가 꺼져 있으면 봇도 동작 불가한데, fail-open이면 모든 BU에 떠서 혼란)
@@ -1322,7 +1344,8 @@
     if (!allowed.length) {
       // 게이트 미설정(allowedAccounts 비어 있음) → 항상 표시
       console.log(`[MCE Bot v${VER}] 게이트 미설정 → 버튼 표시`, cfg);
-      fab.hidden = false;
+      gateOk = true;
+      applyVisibility();
       return;
     }
     console.log(`[MCE Bot v${VER}] 계정 게이트 검사 시작:`, allowed);
@@ -1359,7 +1382,8 @@
     const timer = setInterval(() => {
       if (matches()) {
         console.log(`[MCE Bot v${VER}] 헤더에서 연결 BU 확인 → 버튼 표시`);
-        fab.hidden = false;
+        gateOk = true;
+        applyVisibility();
         clearInterval(timer);
       } else if (++tries >= 40) {
         console.log(`[MCE Bot v${VER}] 20초 내 연결 BU 미확인 → 버튼 미노출`);

@@ -2,6 +2,22 @@
 // 페이지(CSP/CORS) 제약을 받지 않도록 fetch는 전부 여기서 수행하고, SSE 조각을 Port로 중계한다.
 const BRIDGE = 'http://localhost:3456';
 
+// ── 툴바 아이콘 클릭 = 챗봇 전역 ON/OFF 토글 ──
+// 상태는 chrome.storage.local.botDisabled에 영구 저장되고, content.js가 onChanged로 받아 즉시 반영한다.
+const reflectBadge = (off) => {
+  chrome.action.setBadgeText({ text: off ? 'OFF' : '' });
+  if (off) chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
+};
+chrome.action.onClicked.addListener(() => {
+  chrome.storage.local.get('botDisabled', ({ botDisabled }) => {
+    const next = !botDisabled;
+    chrome.storage.local.set({ botDisabled: next });
+    reflectBadge(next);
+  });
+});
+// 서비스 워커가 깨어날 때마다 배지를 저장된 상태와 동기화 (브라우저 재시작 시 배지가 초기화되므로)
+chrome.storage.local.get('botDisabled', ({ botDisabled }) => reflectBadge(!!botDisabled));
+
 // 콘텐츠 스크립트 단발 요청 처리: whoami(탭 ID) / getConfig(계정 게이트 설정)
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'whoami') {
