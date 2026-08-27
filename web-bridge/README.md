@@ -42,6 +42,7 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
   - 이벤트: `session`(세션 ID) · `tool`(도구 실행) · `text`(중간 안내) · `result`(최종 답변+비용) · `error` · `done`
   - `sessionId`를 주면 `--resume`으로 대화 맥락을 이어간다
 - `POST /api/stop` — `{ chatId }` → 실행 중인 요청 프로세스 종료 (Windows에서는 `taskkill /T /F`로 프로세스 트리 전체 종료). 중단된 요청은 `result` 이벤트로 "⏹ 요청을 중단했습니다."를 내려보냄
+- `GET /api/mcp-status` — SFMC MCP 인증 상태 `{ needsAuth }`. `claude mcp get`으로 확정 판정(60초 캐시, 모델 호출 없음). 확장이 패널을 열 때 상단 인증 배너 표시용으로 호출
 - `POST /api/mcp-login` — **SFMC MCP 재인증**. `claude mcp login sf-mce-mcp`를 실행해 이 PC 기본 브라우저에 OAuth 로그인 창을 연다. 챗봇 답변에서 SFMC 세션 만료("session is invalid / access revoked")가 감지되면 확장이 말풍선에 "🔐 SFMC 재인증" 버튼을 자동 표시하고, 그 버튼이 이 엔드포인트를 호출한다. 완료 후 다음 요청부터 적용(브릿지 재시작 불필요), 진행 중 중복 호출은 거부, 3분 미완료 시 자동 정리
 - `GET /api/result?chatId=` — `{ result: { text, sessionId, cost, ts } | null, running }` — 스트림 도중 연결이 끊긴 클라이언트가 결과를 회수(폴링)하는 용도. 결과는 1시간 보관. 확장은 포트가 결과 없이 끊기면 자동으로 이 엔드포인트를 폴링해 답변을 이어받음
 - `GET /dashboard` — **캠페인 성과 대시보드** (정적 HTML, 챗봇 헤더 📊 버튼으로 열림). KPI 타일(전기간 대비)·일별 발송량·오픈/클릭률 추이·저니별 성과(막대+표)·인사이트/다음 캠페인 제안 카드, 기간 필터(7/14/30일 + 날짜 직접 지정), 다크모드 토글, 인쇄(Ctrl+P) 최적화. 고객사별 테마: 데이터 JSON의 `theme` 객체가 CSS 변수를 덮어씀

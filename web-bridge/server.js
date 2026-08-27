@@ -170,6 +170,43 @@ function toolDetail(input) {
   return String(v).replace(/\s+/g, ' ').slice(0, 100);
 }
 
+// SFMC MCP 인증 상태 확인 — `claude mcp get <서버명>` 출력의 "Needs authentication" 여부로 판정.
+// 채팅 스폰과 병렬로 돌고(약 15초 — 헬스체크 포함), result 전송은 프로브 완료를 기다린다.
+// 결과는 60초 캐시해 연속 요청마다 CLI를 새로 띄우지 않는다. (모델 호출이 아니라서 사용량 0)
+let probeCache = { ts: 0, needsAuth: false };
+let probeInflight = null;
+function probeMcpAuth() {
+  if (Date.now() - probeCache.ts < 60e3) return Promise.resolve(probeCache.needsAuth);
+  if (probeInflight) return probeInflight;
+  probeInflight = new Promise((resolve) => {
+    let out = '';
+    let called = false;
+    const once = (v) => {
+      if (called) return;
+      called = true;
+      probeCache = { ts: Date.now(), needsAuth: v };
+      probeInflight = null;
+      resolve(v);
+    };
+    try {
+      const p = spawn('claude', ['mcp', 'get', MCP_NAME], { cwd: PROJECT_ROOT, shell: true });
+      p.stdout.on('data', (d) => (out += d.toString()));
+      p.stderr.on('data', (d) => (out += d.toString()));
+      p.on('close', () => once(/needs authentication/i.test(out)));
+      p.on('error', () => once(false));
+      setTimeout(() => { once(false); try { killTree(p); } catch { /* 이미 종료 */ } }, 25000);
+    } catch {
+      once(false);
+    }
+  });
+  return probeInflight;
+}
+
+// SFMC 인증 상태 조회 — 확장이 패널을 열 때 상단 인증 배너 표시용으로 호출 (프로브 60초 캐시 재사용)
+app.get('/api/mcp-status', (_req, res) => {
+  probeMcpAuth().then((needsAuth) => res.json({ needsAuth }));
+});
+
 app.post('/api/chat', (req, res) => {
   const { message, sessionId, chatId } = req.body || {};
   const prompt = (message || '').trim();
@@ -212,15 +249,15 @@ app.post('/api/chat', (req, res) => {
   let buf = '';
   let authErr = false; // SFMC MCP 인증 만료 감지 — 확장이 result와 함께 받아 재인증 버튼을 띄운다
 
+  // ⚠ init 이벤트의 mcp_servers 상태는 타이밍 경합이라 못 쓴다 — 같은 '인증 필요' 상태에서도
+  //   스폰 타이밍에 따라 'needs-auth' 또는 'pending'(연결 중)으로 찍힌다(2026-08-27 실측).
+  //   대신 요청마다 `claude mcp get`을 병렬로 돌려 인증 상태를 확정적으로 확인하고,
+  //   result 전송을 프로브 완료까지 지연시켜 짧은 응답에서도 플래그를 놓치지 않는다.
+  const probeP = probeMcpAuth().then((needsAuth) => { if (needsAuth) authErr = true; });
+  let resultPending = null; // result 이벤트 처리 프라미스 — done/종료 처리가 이걸 기다린다
+
   const handleEvent = (ev) => {
     if (ev.type === 'system' && ev.subtype === 'init') {
-      // SFMC MCP가 '인증 필요' 상태면 재인증 안내 대상으로 표시 (세션 만료 문구와 별개 경로).
-      // ⚠ init 시점에는 인증이 정상이어도 status가 'pending'(연결 진행 중)으로 오므로
-      //   'needs-auth'일 때만 인증 문제로 판정한다 (pending을 걸면 오탐 — 2026-08-25 실측)
-      if (Array.isArray(ev.mcp_servers)) {
-        const m = ev.mcp_servers.find((s) => s && s.name === MCP_NAME);
-        if (m && m.status === 'needs-auth') authErr = true;
-      }
       send(res, { type: 'session', sessionId: ev.session_id });
       return;
     }
@@ -239,15 +276,18 @@ app.post('/api/chat', (req, res) => {
       if (ev.is_error && !ev.result) {
         send(res, { type: 'error', message: ev.error || ev.subtype || '알 수 없는 오류' });
       } else {
-        const payload = {
-          type: 'result',
-          text: ev.result ?? '(빈 응답)',
-          cost: ev.total_cost_usd,
-          sessionId: ev.session_id,
-          authError: authErr || undefined,
-        };
-        rememberResult(chatId, payload); // 연결이 끊긴 클라이언트의 폴링 회수용
-        send(res, payload);
+        // 인증 프로브가 아직이면 완료까지 기다렸다가 result를 보낸다 (내부 25초 타임아웃 있음)
+        resultPending = probeP.then(() => {
+          const payload = {
+            type: 'result',
+            text: ev.result ?? '(빈 응답)',
+            cost: ev.total_cost_usd,
+            sessionId: ev.session_id,
+            authError: authErr || undefined,
+          };
+          rememberResult(chatId, payload); // 연결이 끊긴 클라이언트의 폴링 회수용
+          send(res, payload);
+        });
       }
     }
   };
@@ -280,15 +320,18 @@ app.post('/api/chat', (req, res) => {
 
   child.on('error', (err) => finish({ type: 'error', message: `claude 실행 실패: ${err.message}` }));
   child.on('close', (code) => {
-    if (child.stoppedByUser && !gotResult) {
-      const payload = { type: 'result', text: '⏹ 요청을 중단했습니다.' }; // 사용자 중단은 오류가 아닌 안내로
-      rememberResult(chatId, payload);
-      finish(payload);
-    } else if (!gotResult && code !== 0) {
-      finish({ type: 'error', message: stderr.trim() || `claude 종료 코드 ${code}` });
-    } else {
-      finish();
-    }
+    // result 전송이 인증 프로브를 기다리는 중이면 done도 그 뒤에 보낸다 (순서 보장)
+    Promise.resolve(resultPending).then(() => {
+      if (child.stoppedByUser && !gotResult) {
+        const payload = { type: 'result', text: '⏹ 요청을 중단했습니다.' }; // 사용자 중단은 오류가 아닌 안내로
+        rememberResult(chatId, payload);
+        finish(payload);
+      } else if (!gotResult && code !== 0) {
+        finish({ type: 'error', message: stderr.trim() || `claude 종료 코드 ${code}` });
+      } else {
+        finish();
+      }
+    });
   });
 
   // 탭이 닫혀도 작업은 계속 진행 — 세션이 저장되므로 다시 열면 --resume으로 이어진다
@@ -335,7 +378,11 @@ app.post('/api/mcp-login', (_req, res) => {
   mcpLoginProc = child;
   // 5분 내 완료되지 않으면 정리 (로그인 창을 방치한 경우 등 — 이후 재시도 가능)
   const timeout = setTimeout(() => killTree(child), 300e3);
-  const done = () => { clearTimeout(timeout); mcpLoginProc = null; };
+  const done = () => {
+    clearTimeout(timeout);
+    mcpLoginProc = null;
+    probeCache.ts = 0; // 재인증 직후엔 캐시를 비워 다음 요청이 새 상태를 보게 한다
+  };
   child.on('close', done);
   child.on('error', done);
   res.json({ started: true });

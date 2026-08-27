@@ -315,6 +315,14 @@
     .answer hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     .answer.error { color: #ef4444; }
     /* SFMC 인증 만료 시 말풍선에 붙는 재인증 안내 (v1.15.1~) */
+    /* 패널 상단 SFMC 인증 배너 (v1.16.1~) — 열 때 인증 상태 확인, 인증되면 자동 소멸 */
+    .authbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 12.5px;
+      background: rgba(239,68,68,.08); border-bottom: 1px solid rgba(239,68,68,.25); }
+    .authbar[hidden] { display: none; }
+    .authbar .at { flex: 1; opacity: .9; }
+    .authbar .ab { border: none; background: #dc2626; color: #fff; padding: 6px 12px; border-radius: 8px;
+      cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
+    .authbar .ab:disabled { opacity: .6; cursor: default; }
     .reauth { margin-top: 10px; padding: 10px 12px; border: 1px solid #fca5a5; background: rgba(239,68,68,.07); border-radius: 10px; }
     .reauth .rmsg { font-size: 12px; margin-bottom: 8px; opacity: .85; line-height: 1.5; }
     .reauth .rbtn { border: none; background: #dc2626; color: #fff; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12.5px; }
@@ -510,6 +518,10 @@
         <button class="hbtn new" type="button" title="새 대화">${ICONS.plus}</button>
         <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
         <button class="hbtn close" type="button" title="닫기">${ICONS.close}</button>
+      </div>
+      <div class="authbar" hidden>
+        <span class="at">🔐 SFMC 인증이 필요합니다 — 인증 전에는 SFMC 작업이 실패합니다</span>
+        <button class="ab" type="button">재인증</button>
       </div>
       <div class="dropzone" hidden>📎 여기에 놓으면 파일이 첨부됩니다</div>
       <div class="body"></div>
@@ -1141,6 +1153,47 @@
     uploadFiles(e.dataTransfer.files);
   });
 
+  // ── SFMC 인증 배너 — 패널을 열 때 서버(/api/mcp-status)로 인증 상태를 확인해 상단에 표시하고,
+  //    재인증이 완료되면(폴링 감지 또는 다음 응답의 authError 해제) 자동으로 사라진다
+  const authbar = $('.authbar');
+  const authbarBtn = $('.authbar .ab');
+  let authPoll = null;
+  function setAuthbar(needsAuth) {
+    authbar.hidden = !needsAuth;
+    if (!needsAuth) {
+      clearInterval(authPoll);
+      authPoll = null;
+      authbarBtn.disabled = false;
+      authbarBtn.textContent = '재인증';
+    }
+  }
+  function checkAuth() {
+    chrome.runtime.sendMessage({ type: 'mcpStatus' }, (res) => {
+      if (!chrome.runtime.lastError && res && typeof res.needsAuth === 'boolean') setAuthbar(res.needsAuth);
+    });
+  }
+  function pollAuthUntilOk() {
+    // 재인증 시작 후 완료를 감지해 배너를 지운다 (10초 간격, 최대 5분)
+    clearInterval(authPoll);
+    let n = 0;
+    authPoll = setInterval(() => {
+      if (++n > 30) { clearInterval(authPoll); authPoll = null; return; }
+      checkAuth();
+    }, 10000);
+  }
+  authbarBtn.addEventListener('click', () => {
+    authbarBtn.disabled = true;
+    authbarBtn.textContent = '로그인 창 확인…';
+    chrome.runtime.sendMessage({ type: 'mcpLogin' }, (res) => {
+      if (res && res.started) {
+        pollAuthUntilOk();
+      } else {
+        authbarBtn.disabled = false;
+        authbarBtn.textContent = '재인증';
+      }
+    });
+  });
+
   // SFMC 인증 만료 감지 시 말풍선에 붙는 재인증 안내 — 버튼을 누르면 서버가
   // `claude mcp login`을 실행해 이 PC 기본 브라우저에 OAuth 로그인 창을 연다
   function attachReauth(bubble) {
@@ -1159,6 +1212,7 @@
           btn.textContent = res.dup ? '🌐 이미 진행 중' : '🌐 로그인 진행 중';
           msg.textContent =
             '콘솔 창과 함께 브라우저에 SFMC 로그인 창이 열립니다. 로그인·승인을 완료하면 창이 자동으로 닫히고, 그 뒤 요청을 다시 보내주세요.';
+          pollAuthUntilOk(); // 완료되면 상단 인증 배너도 자동으로 사라진다
         } else {
           btn.disabled = false;
           btn.textContent = '🔐 SFMC 재인증';
@@ -1230,6 +1284,7 @@
       } else if (ev.type === 'result') {
         resultText = ev.text;
         authErr = !!ev.authError;
+        setAuthbar(authErr); // 응답마다 서버가 인증 상태를 확인하므로 배너도 함께 동기화
         if (ev.sessionId) { conv.sessionId = ev.sessionId; saveDB(); }
       } else if (ev.type === 'error') {
         errored = true;
@@ -1255,6 +1310,7 @@
             clearInterval(iv);
             resultText = res.result.text;
             authErr = !!res.result.authError;
+            setAuthbar(authErr);
             if (res.result.sessionId) { conv.sessionId = res.result.sessionId; saveDB(); }
             finishTurn();
           } else if (!res.running) {
@@ -1298,6 +1354,7 @@
       if (conv && conv.messages.length) newConv();
     }
     showChat();
+    checkAuth(); // 패널을 열 때 SFMC 인증 상태 확인 → 필요 시 상단 배너 표시
     inputEl.focus();
   });
   $('.close').addEventListener('click', () => {

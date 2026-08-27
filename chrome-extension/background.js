@@ -39,6 +39,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  if (msg && msg.type === 'mcpStatus') {
+    // SFMC 인증 상태 — 패널 상단 인증 배너 표시용
+    fetch(`${BRIDGE}/api/mcp-status`)
+      .then((r) => r.json())
+      .then(sendResponse)
+      .catch(() => sendResponse(null));
+    return true;
+  }
   if (msg && msg.type === 'mcpLogin') {
     // SFMC MCP 재인증 — 서버가 claude mcp login을 실행하고 인증 URL을 돌려주면 새 탭으로 연다
     fetch(`${BRIDGE}/api/mcp-login`, { method: 'POST' })
