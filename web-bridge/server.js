@@ -210,9 +210,17 @@ app.post('/api/chat', (req, res) => {
   let gotResult = false;
   let stderr = '';
   let buf = '';
+  let authErr = false; // SFMC MCP 인증 만료 감지 — 확장이 result와 함께 받아 재인증 버튼을 띄운다
 
   const handleEvent = (ev) => {
     if (ev.type === 'system' && ev.subtype === 'init') {
+      // SFMC MCP가 '인증 필요' 상태면 재인증 안내 대상으로 표시 (세션 만료 문구와 별개 경로).
+      // ⚠ init 시점에는 인증이 정상이어도 status가 'pending'(연결 진행 중)으로 오므로
+      //   'needs-auth'일 때만 인증 문제로 판정한다 (pending을 걸면 오탐 — 2026-08-25 실측)
+      if (Array.isArray(ev.mcp_servers)) {
+        const m = ev.mcp_servers.find((s) => s && s.name === MCP_NAME);
+        if (m && m.status === 'needs-auth') authErr = true;
+      }
       send(res, { type: 'session', sessionId: ev.session_id });
       return;
     }
@@ -236,6 +244,7 @@ app.post('/api/chat', (req, res) => {
           text: ev.result ?? '(빈 응답)',
           cost: ev.total_cost_usd,
           sessionId: ev.session_id,
+          authError: authErr || undefined,
         };
         rememberResult(chatId, payload); // 연결이 끊긴 클라이언트의 폴링 회수용
         send(res, payload);
@@ -250,6 +259,8 @@ app.post('/api/chat', (req, res) => {
       const line = buf.slice(0, idx).trim();
       buf = buf.slice(idx + 1);
       if (!line) continue;
+      // SFMC MCP 세션 만료 오류가 스트림(도구 결과)에 보이면 표시해 둔다
+      if (!authErr && /session is invalid or access is revoked/i.test(line)) authErr = true;
       try {
         handleEvent(JSON.parse(line));
       } catch {
@@ -302,6 +313,32 @@ function killTree(child) {
 app.get('/api/result', (req, res) => {
   const chatId = String(req.query.chatId || '');
   res.json({ result: lastResult.get(chatId) || null, running: running.has(chatId) });
+});
+
+// SFMC MCP 재인증 — 확장 말풍선의 "🔐 SFMC 재인증" 버튼이 호출한다.
+// `claude mcp login <서버명>`을 실행하면 이 PC의 기본 브라우저에 OAuth 로그인 창이 열리고,
+// 완료되면 인증이 저장되어 다음 claude -p 실행부터 적용된다 (브릿지 재시작 불필요).
+const MCP_NAME = 'sf-mce-mcp';
+let mcpLoginProc = null; // 진행 중인 로그인 프로세스 (중복 실행 방지)
+app.post('/api/mcp-login', (_req, res) => {
+  if (mcpLoginProc) {
+    return res.json({ started: true, dup: true });
+  }
+  // ⚠ 헤드리스 스폰으로는 불가 — CLI가 "stdin isn't a terminal"로 인증 완료를 거부하고 종료해
+  // 로컬 콜백 리스너까지 죽는다(검증됨). 그래서 실제 콘솔 창(TTY)을 하나 띄워 그 안에서 실행한다.
+  // CLI가 스스로 기본 브라우저에 OAuth 로그인 창을 열고 로컬 콜백으로 완료를 받으며,
+  // 완료되면 콘솔 창은 자동으로 닫힌다. (start /wait 로 창이 닫힐 때까지 프로세스를 추적)
+  const child = spawn(`start "SFMC MCP Login" /wait cmd /c "claude mcp login ${MCP_NAME}"`, [], {
+    cwd: PROJECT_ROOT,
+    shell: true,
+  });
+  mcpLoginProc = child;
+  // 5분 내 완료되지 않으면 정리 (로그인 창을 방치한 경우 등 — 이후 재시도 가능)
+  const timeout = setTimeout(() => killTree(child), 300e3);
+  const done = () => { clearTimeout(timeout); mcpLoginProc = null; };
+  child.on('close', done);
+  child.on('error', done);
+  res.json({ started: true });
 });
 
 app.post('/api/stop', (req, res) => {

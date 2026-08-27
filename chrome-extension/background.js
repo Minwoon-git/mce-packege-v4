@@ -39,6 +39,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse(null));
     return true;
   }
+  if (msg && msg.type === 'mcpLogin') {
+    // SFMC MCP 재인증 — 서버가 claude mcp login을 실행하고 인증 URL을 돌려주면 새 탭으로 연다
+    fetch(`${BRIDGE}/api/mcp-login`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.url) chrome.tabs.create({ url: data.url });
+        sendResponse(data);
+      })
+      .catch(() => sendResponse(null));
+    return true;
+  }
   if (msg && msg.type === 'getDash') {
     // 성과 대시보드 데이터 — 챗봇 패널 안의 대시보드 뷰가 사용 (Claude 호출 없음)
     fetch(`${BRIDGE}/api/dashboard-data`)

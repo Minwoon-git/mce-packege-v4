@@ -272,6 +272,11 @@
     .answer a.dl:hover { border-color: var(--accent); text-decoration: none; }
     .answer hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     .answer.error { color: #ef4444; }
+    /* SFMC 인증 만료 시 말풍선에 붙는 재인증 안내 (v1.15.1~) */
+    .reauth { margin-top: 10px; padding: 10px 12px; border: 1px solid #fca5a5; background: rgba(239,68,68,.07); border-radius: 10px; }
+    .reauth .rmsg { font-size: 12px; margin-bottom: 8px; opacity: .85; line-height: 1.5; }
+    .reauth .rbtn { border: none; background: #dc2626; color: #fff; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12.5px; }
+    .reauth .rbtn:disabled { opacity: .6; cursor: default; }
 
     /* ── 대화 내역 ── */
     .hist-title { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .4px; margin: 2px 4px 10px; }
@@ -957,6 +962,34 @@
     uploadFiles(e.dataTransfer.files);
   });
 
+  // SFMC 인증 만료 감지 시 말풍선에 붙는 재인증 안내 — 버튼을 누르면 서버가
+  // `claude mcp login`을 실행해 이 PC 기본 브라우저에 OAuth 로그인 창을 연다
+  function attachReauth(bubble) {
+    const box = document.createElement('div');
+    box.className = 'reauth';
+    box.innerHTML =
+      '<div class="rmsg">SFMC 인증이 만료된 것 같습니다. 재인증 후 요청을 다시 보내주세요.</div>' +
+      '<button class="rbtn">🔐 SFMC 재인증</button>';
+    const btn = box.querySelector('.rbtn');
+    const msg = box.querySelector('.rmsg');
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      btn.textContent = '여는 중…';
+      chrome.runtime.sendMessage({ type: 'mcpLogin' }, (res) => {
+        if (res && res.started) {
+          btn.textContent = res.dup ? '🌐 이미 진행 중' : '🌐 로그인 진행 중';
+          msg.textContent =
+            '콘솔 창과 함께 브라우저에 SFMC 로그인 창이 열립니다. 로그인·승인을 완료하면 창이 자동으로 닫히고, 그 뒤 요청을 다시 보내주세요.';
+        } else {
+          btn.disabled = false;
+          btn.textContent = '🔐 SFMC 재인증';
+          msg.textContent = '서버에 연결하지 못했습니다. web-bridge 상태를 확인해주세요.';
+        }
+      });
+    });
+    bubble.appendChild(box);
+  }
+
   // ── 전송 ────────────────────────────────────────────────────
   function sendMessage(text) {
     const ready = pendingFiles.filter((f) => f.path);
@@ -989,6 +1022,7 @@
 
     let resultText = null;
     let errored = false;
+    let authErr = false; // 서버가 SFMC 인증 만료를 감지한 경우 (result 이벤트의 authError)
     const startedAt = Date.now(); // 결과 회수 시 이 요청의 결과인지(이전 턴 잔여물이 아닌지) 판별용
 
     const finishTurn = () => {
@@ -1000,6 +1034,7 @@
         conv.messages.push({ role: 'bot', text: md });
         conv.updatedAt = Date.now();
         saveDB();
+        if (authErr) attachReauth(bubble);
       }
       setBusy(false);
       scrollBottom();
@@ -1015,6 +1050,7 @@
         // 진행 과정은 화면에 노출하지 않는다 — 결과만 표시 (typing 점 애니메이션이 처리 중 표시를 대신함)
       } else if (ev.type === 'result') {
         resultText = ev.text;
+        authErr = !!ev.authError;
         if (ev.sessionId) { conv.sessionId = ev.sessionId; saveDB(); }
       } else if (ev.type === 'error') {
         errored = true;
@@ -1039,6 +1075,7 @@
           if (res.result && res.result.ts >= startedAt) {
             clearInterval(iv);
             resultText = res.result.text;
+            authErr = !!res.result.authError;
             if (res.result.sessionId) { conv.sessionId = res.result.sessionId; saveDB(); }
             finishTurn();
           } else if (!res.running) {
