@@ -78,10 +78,6 @@
     stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
     spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.7L20 9.5l-5.4 3.2L15.5 19 12 15.6 8.5 19l.9-6.3L4 9.5l6.1-1.8z"/></svg>',
-    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>',
-    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
-    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
   };
   // 봇 캐릭터 이미지 — 플로팅 버튼·헤더 아바타·말풍선 미니 아이콘·빈 화면 마크 공용
   const FAB_IMG = chrome.runtime.getURL('fab.png');
@@ -102,7 +98,7 @@
       --bg: #f7f8fc; --card: #ffffff; --text: #191d2b; --muted: #8a91a5;
       --border: #e9ebf3; --soft: #eaf1fd; --user-text: #fff;
       /* 대시보드 시리즈·상태 색 — dataviz 검증 통과값 (light: surface #fff) */
-      --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+      --c1: #2a78d6; --c2: #eb6834;
       --pos: #006300; --neg: #b3261e; --warn-text: #8a5800;
       --st-good: #0ca30c; --st-warn: #fab219; --st-serious: #ec835a;
       --shadow-lg: 0 24px 70px rgba(23, 25, 60, .28);
@@ -112,7 +108,7 @@
       :host {
         --bg: #12141d; --card: #1c1f2d; --text: #e9ebf5; --muted: #8d93a8;
         --border: #2b2f42; --soft: #1a2947; --accent: #5b9bf8;
-        --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+        --c1: #3987e5; --c2: #d95926;
         --pos: #0ca30c; --neg: #e66767; --warn-text: #fab219;
         --shadow-lg: 0 24px 70px rgba(0, 0, 0, .6);
         --shadow-sm: 0 1px 2px rgba(0,0,0,.2), 0 4px 14px rgba(0,0,0,.2);
@@ -164,32 +160,6 @@
     .rz-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
     .rz-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
 
-    /* ── 사이드바 (와이드/최대화 시에만 표시, 브랜드 블루 세로 그라데이션) ── */
-    .side { display: none; }
-    /* min-height:0 필수 — 없으면 flex 자식이 내용만큼 늘어나 .body 스크롤이 죽는다 */
-    .mainc { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
-    .panel.wide { flex-direction: row; }
-    .panel.wide .side {
-      display: flex; flex-direction: column; width: 206px; flex: none;
-      background: linear-gradient(180deg, #0f2f6d 0%, #1d4ed8 130%);
-      color: rgba(255,255,255,.78); padding: 16px 10px 12px;
-    }
-    .slogo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 14.5px; padding: 2px 8px 14px; letter-spacing: -.2px; }
-    .slogo img { width: 30px; height: 30px; object-fit: contain; pointer-events: none; }
-    .sitem {
-      display: flex; align-items: center; gap: 10px; width: 100%;
-      border: none; background: none; color: rgba(255,255,255,.78);
-      padding: 9px 11px; border-radius: 8px; font: inherit; font-size: 13px;
-      cursor: pointer; margin-bottom: 2px; text-align: left;
-    }
-    .sitem:hover { color: #fff; background: rgba(255,255,255,.1); }
-    .sitem.on { color: #fff; background: rgba(255,255,255,.18); font-weight: 600; }
-    .sitem svg { width: 15px; height: 15px; flex: none; }
-    .sfoot { margin-top: auto; padding: 10px 9px 2px; border-top: 1px solid rgba(255,255,255,.16); font-size: 11px; color: rgba(255,255,255,.55); }
-    /* 와이드 상태에서는 화면 전환 버튼이 사이드바로 이동하므로 헤더에서 숨긴다 */
-    .panel.wide .hbtn.dash, .panel.wide .hbtn.hist { display: none; }
-    .panel.wide .body { padding: 18px 20px; }
-
     /* ── 헤더 ── */
     .head {
       display: flex; align-items: center; gap: 11px;
@@ -226,25 +196,19 @@
     .empty .mark img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .empty h2 { font-size: 17px; letter-spacing: -.3px; margin-bottom: 5px; }
     .empty p { color: var(--muted); font-size: 12.5px; margin-bottom: 20px; }
-    .chips { display: flex; flex-direction: column; gap: 8px; }
+    .chips { display: flex; flex-direction: column; gap: 9px; }
     .chip {
-      display: flex; align-items: center; gap: 11px; text-align: left;
+      display: flex; align-items: center; gap: 10px; text-align: left;
       border: 1px solid var(--border); background: var(--card); color: var(--text);
-      border-radius: 11px; padding: 11px 13px; cursor: pointer; font-size: 13px;
-      transition: border-color .15s;
+      border-radius: 14px; padding: 12px 14px; cursor: pointer; font-size: 13px;
+      box-shadow: var(--shadow-sm); transition: transform .15s, border-color .15s;
     }
-    .chip:hover { border-color: var(--accent); }
+    .chip:hover { transform: translateY(-1.5px); border-color: var(--accent); }
     .chip .ci {
-      width: 30px; height: 30px; border-radius: 8px; flex: none;
+      width: 30px; height: 30px; border-radius: 9px; flex: none;
       background: var(--soft); color: var(--accent);
-      display: grid; place-items: center;
+      display: grid; place-items: center; font-size: 15px;
     }
-    .chip .ci svg { width: 15px; height: 15px; }
-    .chip .ct { flex: 1; min-width: 0; }
-    .chip .tx { font-size: 13px; font-weight: 600; }
-    .chip .sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .chip .go { color: var(--muted); opacity: .55; flex: none; }
-    .chip .go svg { width: 14px; height: 14px; display: block; }
 
     /* ── 메시지 ── */
     .msg { display: flex; gap: 8px; margin: 10px 0; animation: fadeUp .25s ease; }
@@ -348,21 +312,7 @@
     /* ── 성과 대시보드 뷰 (패널 내장) ──
        절제된 어드민 톤: 알약(pill)·그라데이션·이모지·컬러 사이드바 없이
        1px 보더 + 낮은 라운드 + 텍스트 토큰. 시리즈 색은 --c1/--c2 (검증 팔레트) */
-    .dashgrid { min-width: 0; }
-    /* 와이드 상태: 본문 2단(콘텐츠 + 인사이트 레일) + KPI 4열 */
-    .panel.wide .dashgrid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
-    .panel.wide .dashgrid > .dcol:only-child { grid-column: 1 / -1; }
-    .panel.wide .kpis { grid-template-columns: repeat(4, 1fr); }
-    /* 인사이트 레일을 내려 첫 카드가 좌측 KPI 카드와 같은 높이에서 시작하게 정렬 */
-    .panel.wide .drail { margin-top: 39px; }
-    .panel.wide .drail .dash-sec:first-child { margin-top: 0; }
-    /* 와이드: KPI 카드도 여유 있게 (차트 높이는 draw()가 상태 보고 결정) */
-    .panel.wide .kpi { padding: 15px 17px; }
-    .panel.wide .kpi .kv { font-size: 24px; }
-    /* 저니 표: 기본 크기에선 상위 6개만, 와이드에선 12개까지 표시 (렌더는 항상 12행) */
-    .dtable tbody tr:nth-child(n+7) { display: none; }
-    .panel.wide .dtable tbody tr:nth-child(n+7) { display: table-row; }
-    .dash-meta { font-size: 11px; color: var(--muted); margin: 0 4px 10px; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+    .dash-meta { font-size: 11px; color: var(--muted); margin: 0 4px 10px; display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
     .dash-meta .warn { color: var(--warn-text); }
     .rangechips { display: flex; gap: 4px; margin: 0 0 12px; }
     .rchip {
@@ -372,16 +322,14 @@
     }
     .rchip:hover { color: var(--text); }
     .rchip.active { color: var(--text); border-color: var(--text); font-weight: 600; }
+    .xticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
     .sparkcard .tip {
       position: absolute; top: 8px; left: 4px; z-index: 5; pointer-events: none;
       background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      box-shadow: var(--shadow-sm); padding: 6px 10px; font-size: 11px; white-space: nowrap;
-      font-variant-numeric: tabular-nums; min-width: 108px;
+      box-shadow: var(--shadow-sm); padding: 5px 9px; font-size: 11px; white-space: nowrap;
+      font-variant-numeric: tabular-nums;
     }
-    .sparkcard .tip .t { color: var(--muted); margin-bottom: 3px; font-size: 10.5px; }
-    .sparkcard .tip .r { display: flex; align-items: center; gap: 6px; margin-top: 1px; }
-    .sparkcard .tip .r b { margin-left: auto; padding-left: 12px; font-weight: 600; }
-    .sparkcard .tip .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+    .sparkcard .tip b { margin-right: 4px; }
     .dash-sec { font-size: 11.5px; font-weight: 600; color: var(--muted); letter-spacing: .2px; margin: 18px 4px 8px; }
     .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .kpi {
@@ -399,7 +347,7 @@
       background: var(--card); border: 1px solid var(--border); border-radius: 10px;
       padding: 12px 13px 9px;
     }
-    .sparkcard .tk { font-size: 10px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+    .sparkcard svg { width: 100%; height: 64px; display: block; }
     .legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-top: 6px; }
     .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
     .dtwrap {
@@ -480,7 +428,7 @@
       flex: none; border: none; border-radius: 11px; width: 36px; height: 36px;
       cursor: pointer; display: grid; place-items: center; transition: transform .15s, opacity .15s;
     }
-    .send { background: var(--accent); color: #fff; }
+    .send { background: var(--grad); color: #fff; }
     .send:hover:not(:disabled) { transform: scale(1.07); }
     .send:disabled { opacity: .35; cursor: default; box-shadow: none; }
     .send svg, .stopb svg { width: 16px; height: 16px; }
@@ -490,39 +438,28 @@
   <button class="fab" title="MCE Bot"><img class="fimg" draggable="false" alt="MCE Bot" src="${FAB_IMG}"><span class="dot"></span></button>
 
   <div class="panel" hidden>
-    <aside class="side">
-      <div class="slogo"><img draggable="false" alt="" src="${FAB_IMG}"><span>MCE Bot</span></div>
-      <nav class="snav">
-        <button class="sitem" type="button" data-view="dash">${ICONS.chart}성과 대시보드</button>
-        <button class="sitem" type="button" data-view="chat">${ICONS.chat}대화</button>
-        <button class="sitem" type="button" data-view="history">${ICONS.history}대화 내역</button>
-      </nav>
-      <div class="sfoot">MCE Bot v${chrome.runtime.getManifest().version}</div>
-    </aside>
-    <div class="mainc">
-      <div class="head">
-        <div class="meta">
-          <div class="title">MCE Bot</div>
-          <div class="status">대기 중</div>
-        </div>
-        <button class="hbtn dash" type="button" title="성과 대시보드">${ICONS.chart}</button>
-        <button class="hbtn hist" type="button" title="대화 내역">${ICONS.history}</button>
-        <button class="hbtn new" type="button" title="새 대화">${ICONS.plus}</button>
-        <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
-        <button class="hbtn close" type="button" title="닫기">${ICONS.close}</button>
+    <div class="head">
+      <div class="meta">
+        <div class="title">MCE Bot</div>
+        <div class="status">대기 중</div>
       </div>
-      <div class="dropzone" hidden>📎 여기에 놓으면 파일이 첨부됩니다</div>
-      <div class="body"></div>
-      <div class="foot">
-        <div class="attach" style="display:none"></div>
-        <form class="composer">
-          <button class="attachb" type="button" title="파일 첨부">${ICONS.plus}</button>
-          <input class="fpick" type="file" multiple hidden accept=".xlsx,.xlsm,.csv,.txt,.sql,.md,.json">
-          <textarea rows="1" placeholder="메시지 입력…"></textarea>
-          <button class="send" type="submit" title="전송">${ICONS.send}</button>
-          <button class="stopb" type="button" title="중지" hidden>${ICONS.stop}</button>
-        </form>
-      </div>
+      <button class="hbtn dash" type="button" title="성과 대시보드">${ICONS.chart}</button>
+      <button class="hbtn hist" type="button" title="대화 내역">${ICONS.history}</button>
+      <button class="hbtn new" type="button" title="새 대화">${ICONS.plus}</button>
+      <button class="hbtn max" type="button" title="최대화/복원">${ICONS.expand}</button>
+      <button class="hbtn close" type="button" title="닫기">${ICONS.close}</button>
+    </div>
+    <div class="dropzone" hidden>📎 여기에 놓으면 파일이 첨부됩니다</div>
+    <div class="body"></div>
+    <div class="foot">
+      <div class="attach" style="display:none"></div>
+      <form class="composer">
+        <button class="attachb" type="button" title="파일 첨부">${ICONS.plus}</button>
+        <input class="fpick" type="file" multiple hidden accept=".xlsx,.xlsm,.csv,.txt,.sql,.md,.json">
+        <textarea rows="1" placeholder="메시지 입력…"></textarea>
+        <button class="send" type="submit" title="전송">${ICONS.send}</button>
+        <button class="stopb" type="button" title="중지" hidden>${ICONS.stop}</button>
+      </form>
     </div>
   </div>`;
   document.documentElement.appendChild(host);
@@ -638,33 +575,15 @@
       <h2>무엇을 도와드릴까요?</h2>
       <p>MCE에서 필요한 작업을 요청해주세요</p>
       <div class="chips">
-        <button class="chip" data-msg="생성 가능한 캠페인 추천해줘">
-          <span class="ci">${ICONS.spark}</span>
-          <span class="ct"><span class="tx">생성 가능한 캠페인 추천</span><br><span class="sub">고객 데이터를 진단해 후보를 제안합니다</span></span>
-          <span class="go">${ICONS.chevron}</span>
-        </button>
-        <button class="chip" data-msg="최근 생성된 저니 목록 조회해줘">
-          <span class="ci">${ICONS.list}</span>
-          <span class="ct"><span class="tx">최근 저니 목록 조회</span><br><span class="sub">SFMC에서 실시간으로 불러옵니다</span></span>
-          <span class="go">${ICONS.chevron}</span>
-        </button>
-        <button class="chip" data-msg="MCE 초기 세팅 점검해줘 (발송 준비 상태 확인)">
-          <span class="ci">${ICONS.search}</span>
-          <span class="ct"><span class="tx">MCE 세팅 점검</span><br><span class="sub">발송 인프라 상태를 진단합니다</span></span>
-          <span class="go">${ICONS.chevron}</span>
-        </button>
+        <button class="chip" data-msg="생성 가능한 캠페인 추천해줘"><span class="ci">✨</span>생성 가능한 캠페인 추천</button>
+        <button class="chip" data-msg="최근 생성된 저니 목록 조회해줘"><span class="ci">🧭</span>최근 저니 목록 조회</button>
+        <button class="chip" data-msg="MCE 초기 세팅 점검해줘 (발송 준비 상태 확인)"><span class="ci">🛠️</span>MCE 세팅 점검</button>
       </div>
     </div>`;
   }
 
-  // 사이드바 메뉴 활성 표시를 현재 화면(view)과 동기화
-  function syncNav() {
-    shadow.querySelectorAll('.sitem').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
-  }
-
   function showChat() {
     view = 'chat';
-    syncNav();
     titleEl.textContent = 'MCE Bot';
     footEl.style.display = '';
     bodyEl.innerHTML = '';
@@ -692,7 +611,6 @@
   // ── 대화 내역 화면 ──────────────────────────────────────────
   function showHistory() {
     view = 'history';
-    syncNav();
     titleEl.textContent = '대화 내역';
     footEl.style.display = 'none';
     bodyEl.innerHTML = '<div class="hist-title">최근 대화</div>';
@@ -736,7 +654,6 @@
   const rate = (a, b) => (b ? (a / b) * 100 : 0);
   let dashData = null; // 마지막 조회 데이터 — 기간 전환 시 재조회 없이 재렌더
   let dashRange = 14; // 기간 필터 (7 | 14 | 30일)
-  let dashRzTimer = null; // 패널 리사이즈 시 차트 재렌더 디바운스
 
   function kpiCard(label, value, delta, unit, invert) {
     // delta: 이전 동일 기간 대비 변화(null이면 비교 기간 부족). invert=true면 감소가 좋은 지표(바운스)
@@ -760,128 +677,67 @@
   }
 
   function trendCard(daily) {
-    // 선택 기간의 발송(막대)·오픈(선) 추이 — 그리드·y눈금·둥근 막대·영역 채움·크로스헤어 툴팁.
-    // 카드가 DOM에 붙은 뒤 실제 폭을 재서 그린다(비율 왜곡 없음). 패널 리사이즈 시 renderDash가 재호출된다.
+    // 선택 기간의 발송·오픈 추이 — 라이브러리 없이 SVG polyline + hover 시 일자별 수치 툴팁
     const rows = daily.slice(-dashRange);
+    const max = Math.max(1, ...rows.map((r) => r.sent));
+    const W = 300, H = 64, PAD = 4;
+    const xAt = (i) => PAD + (i / Math.max(1, rows.length - 1)) * (W - PAD * 2);
+    const yAt = (v) => H - PAD - ((v || 0) / max) * (H - PAD * 2);
+    const pts = (key) => rows.map((r, i) => `${xAt(i).toFixed(1)},${yAt(r[key]).toFixed(1)}`).join(' ');
     const fmtD = (iso) => {
       const d = new Date(iso + 'T00:00:00');
       return `${d.getMonth() + 1}/${d.getDate()}`;
     };
-    const niceMax = (m) => {
-      if (m <= 0) return 4;
-      const p = Math.pow(10, Math.floor(Math.log10(m)));
-      for (const k of [1, 2, 2.5, 5, 10]) if (k * p >= m) return k * p;
-      return 10 * p;
-    };
-    const fmtTick = (v) => (v >= 1000 ? Math.round(v / 100) / 10 + 'k' : Math.round(v));
 
     const card = document.createElement('div');
     card.className = 'sparkcard';
     card.innerHTML = `
-      <div class="tplot"></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        <line class="guide" x1="0" x2="0" y1="0" y2="${H}" stroke="var(--muted)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" visibility="hidden"/>
+        <polyline points="${pts('sent')}" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+        <polyline points="${pts('open')}" fill="none" stroke="var(--c2)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="xticks"><span></span><span></span><span></span></div>
       <div class="legend">
         <span><i style="background:var(--c1)"></i>발송</span>
-        <span><i style="background:var(--c2);height:3px;border-radius:1.5px"></i>오픈</span>
-        <span><i style="background:var(--c3);height:3px;border-radius:1.5px"></i>클릭</span>
+        <span><i style="background:var(--c2)"></i>오픈</span>
         <span style="margin-left:auto">최근 ${rows.length}일</span>
       </div>
       <div class="tip" hidden></div>`;
-    const plotEl = card.querySelector('.tplot');
+    const ticks = card.querySelectorAll('.xticks span');
+    ticks[0].textContent = fmtD(rows[0].date);
+    ticks[1].textContent = rows.length > 2 ? fmtD(rows[Math.floor((rows.length - 1) / 2)].date) : '';
+    ticks[2].textContent = fmtD(rows[rows.length - 1].date);
+
+    // hover 툴팁 — 마우스 x좌표를 가장 가까운 날짜 인덱스로 환산해 세로 가이드선 + 수치 표시
+    const svg = card.querySelector('svg');
+    const guide = card.querySelector('.guide');
     const tip = card.querySelector('.tip');
-
-    function draw() {
-      const W = Math.max(plotEl.clientWidth || 0, 260);
-      const H = panel.classList.contains('wide') ? 210 : 150;
-      const P = { l: 36, r: 10, t: 10, b: 22 };
-      const plotH = H - P.t - P.b;
-      const ymax = niceMax(Math.max(...rows.map((r) => Math.max(r.sent || 0, r.open || 0, r.click || 0))));
-      const X = (i) => P.l + ((i + 0.5) / rows.length) * (W - P.l - P.r);
-      const Y = (v) => P.t + plotH * (1 - (v || 0) / ymax);
-      const bw = Math.max(((W - P.l - P.r) / rows.length) * 0.55, 2);
-
-      let grid = '';
-      for (let i = 0; i <= 4; i++) {
-        const y = P.t + (plotH * i) / 4;
-        grid += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-opacity="${i === 4 ? 1 : .38}"/>`;
-        grid += `<text x="${P.l - 7}" y="${y + 3.5}" text-anchor="end" class="tk">${fmtTick(ymax - (ymax * i) / 4)}</text>`;
-      }
-      let bars = '';
-      rows.forEach((r, i) => {
-        if (!r.sent) return; // 0인 날은 막대를 그리지 않는다 (최소 높이 잔상 방지)
-        const h = Math.max((plotH * r.sent) / ymax, 1.5);
-        bars += `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${(P.t + plotH - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${(h + 4).toFixed(1)}" rx="3" clip-path="inset(0 0 4px 0)"/>`;
-      });
-      // 오픈·클릭 선 — 직선 연결 (수치 왜곡 없는 정직한 표현)
-      const lineOf = (key) => rows.map((r, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(r[key]).toFixed(1)}`).join('');
-      const lineOpen = lineOf('open');
-      const lineClick = lineOf('click');
-      const step = Math.max(1, Math.ceil(rows.length / 6));
-      let xl = '';
-      rows.forEach((r, i) => {
-        if (i % step && i !== rows.length - 1) return;
-        xl += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" class="tk">${fmtD(r.date)}</text>`;
-      });
-      plotEl.innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" aria-hidden="true">
-          <defs><linearGradient id="bgrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" style="stop-color:var(--c1);stop-opacity:1"/>
-            <stop offset="1" style="stop-color:var(--c1);stop-opacity:.45"/>
-          </linearGradient></defs>
-          ${grid}
-          <g fill="url(#bgrad)">${bars}</g>
-          <path d="${lineClick}" fill="none" stroke="var(--c3)" stroke-width="2" stroke-linejoin="round"/>
-          <path d="${lineOpen}" fill="none" stroke="var(--c2)" stroke-width="2" stroke-linejoin="round"/>
-          <line class="guide" x1="0" x2="0" y1="${P.t}" y2="${P.t + plotH}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>
-          <circle class="dot d1" r="3.5" fill="var(--c1)" stroke="var(--card)" stroke-width="2" visibility="hidden"/>
-          <circle class="dot d2" r="3.5" fill="var(--c2)" stroke="var(--card)" stroke-width="2" visibility="hidden"/>
-          <circle class="dot d3" r="3.5" fill="var(--c3)" stroke="var(--card)" stroke-width="2" visibility="hidden"/>
-          ${xl}
-        </svg>`;
-
-      // 크로스헤어 + 시리즈 마커 + 툴팁 (슬롯 기준 날짜 판정)
-      const svg = plotEl.firstElementChild;
-      const guide = svg.querySelector('.guide');
-      const d1 = svg.querySelector('.d1');
-      const d2 = svg.querySelector('.d2');
-      const d3 = svg.querySelector('.d3');
-      const tipRow = (sw, label, val) =>
-        `<div class="r"><span class="sw" style="background:${sw}"></span>${label}<b>${val}</b></div>`;
-      svg.addEventListener('mousemove', (e) => {
-        const rect = svg.getBoundingClientRect();
-        if (!rect.width) return;
-        const idx = Math.min(rows.length - 1, Math.max(0, Math.floor(((e.clientX - rect.left) / rect.width) * rows.length)));
-        const r = rows[idx];
-        const gx = X(idx);
-        guide.setAttribute('x1', gx);
-        guide.setAttribute('x2', gx);
-        guide.setAttribute('visibility', 'visible');
-        d1.setAttribute('cx', gx); d1.setAttribute('cy', Y(r.sent)); d1.setAttribute('visibility', 'visible');
-        d2.setAttribute('cx', gx); d2.setAttribute('cy', Y(r.open)); d2.setAttribute('visibility', 'visible');
-        d3.setAttribute('cx', gx); d3.setAttribute('cy', Y(r.click)); d3.setAttribute('visibility', 'visible');
-        tip.hidden = false;
-        tip.innerHTML = `<div class="t">${fmtD(r.date)}</div>` +
-          tipRow('var(--c1)', '발송', fmtN(r.sent)) +
-          tipRow('var(--c2)', '오픈', fmtN(r.open)) +
-          tipRow('var(--c3)', '클릭', fmtN(r.click));
-        const cardRect = card.getBoundingClientRect();
-        const x = Math.max(4, Math.min(e.clientX - cardRect.left + 14, cardRect.width - tip.offsetWidth - 6));
-        tip.style.left = `${x}px`;
-      });
-      svg.addEventListener('mouseleave', () => {
-        guide.setAttribute('visibility', 'hidden');
-        d1.setAttribute('visibility', 'hidden');
-        d2.setAttribute('visibility', 'hidden');
-        d3.setAttribute('visibility', 'hidden');
-        tip.hidden = true;
-      });
-    }
-    setTimeout(draw, 0); // DOM 부착 후 실제 폭 기준으로 렌더 (rAF는 백그라운드 탭에서 멈추므로 사용 안 함)
+    svg.addEventListener('mousemove', (e) => {
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width) return;
+      const idx = Math.min(rows.length - 1, Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * (rows.length - 1))));
+      const r = rows[idx];
+      guide.setAttribute('x1', xAt(idx));
+      guide.setAttribute('x2', xAt(idx));
+      guide.setAttribute('visibility', 'visible');
+      tip.hidden = false;
+      tip.innerHTML = '<b></b><span></span>';
+      tip.firstElementChild.textContent = fmtD(r.date);
+      tip.lastElementChild.textContent = `발송 ${fmtN(r.sent)} · 오픈 ${fmtN(r.open)} · 클릭 ${fmtN(r.click)} · 바운스 ${fmtN(r.bounce)}`;
+      const cardRect = card.getBoundingClientRect();
+      const x = Math.max(4, Math.min(e.clientX - cardRect.left + 12, cardRect.width - tip.offsetWidth - 6));
+      tip.style.left = `${x}px`;
+    });
+    svg.addEventListener('mouseleave', () => {
+      guide.setAttribute('visibility', 'hidden');
+      tip.hidden = true;
+    });
     return card;
   }
 
   function showDash() {
     view = 'dash';
-    syncNav();
     titleEl.textContent = '성과 대시보드';
     footEl.style.display = 'none';
     bodyEl.innerHTML = '<div class="hist-empty">불러오는 중…</div>';
@@ -899,13 +755,6 @@
   function renderDash(data) {
     dashData = data;
     bodyEl.innerHTML = '';
-    // 와이드(사이드바) 상태에선 2단 그리드(콘텐츠 + 인사이트 레일), 기본 크기에선 세로 스택
-    const grid = document.createElement('div');
-    grid.className = 'dashgrid';
-    const colL = document.createElement('div');
-    colL.className = 'dcol';
-    grid.appendChild(colL);
-    bodyEl.appendChild(grid);
     const daily = data.daily; // 날짜 오름차순
     const cur = daily.slice(-dashRange);
     const prev = daily.slice(-dashRange * 2, -dashRange);
@@ -920,8 +769,8 @@
     meta.innerHTML = '<span></span><span></span>';
     meta.firstElementChild.textContent = `데이터 소스: ${isSample ? '샘플 데이터' : 'SENDLOG_History DE'}`;
     if (isSample) meta.firstElementChild.className = 'warn';
-    meta.lastElementChild.textContent = data.generatedAt ? `· 갱신 ${relTime(new Date(data.generatedAt).getTime())}` : '';
-    colL.appendChild(meta);
+    meta.lastElementChild.textContent = data.generatedAt ? `갱신 ${relTime(new Date(data.generatedAt).getTime())}` : '';
+    bodyEl.appendChild(meta);
 
     // 기간 필터 — 재조회 없이 같은 데이터로 즉시 재렌더
     const chips = document.createElement('div');
@@ -938,7 +787,7 @@
       });
       chips.appendChild(b);
     }
-    colL.appendChild(chips);
+    bodyEl.appendChild(chips);
 
     const kpis = document.createElement('div');
     kpis.className = 'kpis';
@@ -948,24 +797,24 @@
       kpiCard('클릭율', `${(Math.round(rate(cc, cs) * 10) / 10)}%`, hasPrev && ps ? rate(cc, cs) - rate(pc, ps) : null, '%p', false),
       kpiCard('바운스율', `${(Math.round(rate(cb, cs) * 10) / 10)}%`, hasPrev && ps ? rate(cb, cs) - rate(pb, ps) : null, '%p', true),
     );
-    colL.appendChild(kpis);
+    bodyEl.appendChild(kpis);
 
     const secTrend = document.createElement('div');
     secTrend.className = 'dash-sec';
-    secTrend.textContent = '발송·오픈·클릭 추이';
-    colL.append(secTrend, trendCard(daily));
+    secTrend.textContent = '발송·오픈 추이';
+    bodyEl.append(secTrend, trendCard(daily));
 
     const secJ = document.createElement('div');
     secJ.className = 'dash-sec';
     secJ.textContent = '저니별 성과 (전체 기간)';
-    colL.appendChild(secJ);
+    bodyEl.appendChild(secJ);
     const wrap = document.createElement('div');
     wrap.className = 'dtwrap';
     const tbl = document.createElement('table');
     tbl.className = 'dtable';
     tbl.innerHTML = '<thead><tr><th>저니</th><th>발송</th><th>오픈율</th><th>클릭율</th></tr></thead><tbody></tbody>';
     const tb = tbl.querySelector('tbody');
-    for (const j of (data.journeys || []).slice().sort((a, b) => b.sent - a.sent).slice(0, 12)) {
+    for (const j of (data.journeys || []).slice().sort((a, b) => b.sent - a.sent).slice(0, 6)) {
       const tr = document.createElement('tr');
       tr.innerHTML = '<td></td><td></td><td></td><td></td>';
       tr.children[0].textContent = j.name;
@@ -976,16 +825,13 @@
       tb.appendChild(tr);
     }
     wrap.appendChild(tbl);
-    colL.appendChild(wrap);
+    bodyEl.appendChild(wrap);
 
     if (Array.isArray(data.insights) && data.insights.length) {
-      const rail = document.createElement('div');
-      rail.className = 'drail';
-      grid.appendChild(rail);
       const secI = document.createElement('div');
       secI.className = 'dash-sec';
       secI.textContent = '인사이트';
-      rail.appendChild(secI);
+      bodyEl.appendChild(secI);
       const LV = {
         good:    { label: '기회', color: 'var(--st-good)' },
         warning: { label: '주의', color: 'var(--st-warn)' },
@@ -1005,8 +851,7 @@
           btn.className = 'ia';
           btn.type = 'button';
           btn.innerHTML = '<span class="lbl"></span><span class="go">실행 ›</span>';
-          // 라벨은 개조식(…해줘 → …)으로 표시하고, 실제 전송은 원문 명령을 그대로 쓴다
-          btn.querySelector('.lbl').textContent = ins.action.replace(/\s*해\s?(줘|주세요)\s*$/, '');
+          btn.querySelector('.lbl').textContent = ins.action;
           btn.addEventListener('click', () => {
             // 인사이트의 추천 액션을 채팅으로 바로 요청 (이때만 Claude 호출)
             showChat();
@@ -1014,7 +859,7 @@
           });
           card.appendChild(btn);
         }
-        rail.appendChild(card);
+        bodyEl.appendChild(card);
       }
     }
     bodyEl.scrollTop = 0;
@@ -1284,19 +1129,11 @@
   }
 
   // ── 이벤트 바인딩 ───────────────────────────────────────────
-  let openedThisLoad = false; // 페이지 로드 후 첫 오픈 여부
   fab.addEventListener('click', () => {
     if (dragMoved) return; // 드래그로 이동한 경우 클릭으로 취급하지 않는다
     panel.hidden = false;
     fab.style.display = 'none';
     syncPanelPos(); // 버튼 위치에서 파생해 패널만 화면 안으로 보정 (버튼 위치는 유지)
-    // 새로고침(페이지 로드) 후 첫 오픈은 홈(새 대화)에서 시작 — 이전 대화는 '대화 내역'에 그대로 남는다.
-    // 같은 페이지에서 닫았다 다시 열면 보던 대화가 유지된다.
-    if (!openedThisLoad) {
-      openedThisLoad = true;
-      const conv = activeConv();
-      if (conv && conv.messages.length) newConv();
-    }
     showChat();
     inputEl.focus();
   });
@@ -1308,16 +1145,6 @@
   $('.hist').addEventListener('click', () => (view === 'history' ? showChat() : showHistory()));
   // 성과 대시보드 — 패널 안 대시보드 뷰로 전환 (다시 누르면 채팅으로 복귀)
   $('.dash').addEventListener('click', () => (view === 'dash' ? showChat() : showDash()));
-  // 사이드바 메뉴 (와이드/최대화 상태에서만 보임) — 토글 없이 해당 화면으로 직행
-  shadow.querySelectorAll('.sitem').forEach((b) =>
-    b.addEventListener('click', () => {
-      const v = b.dataset.view;
-      if (v === view) return;
-      if (v === 'dash') showDash();
-      else if (v === 'history') showHistory();
-      else showChat();
-    }),
-  );
   // 최대화 ↔ 기본 크기 복원 토글.
   // 기본 크기(448×700)가 아니면(드래그로 늘렸든 최대화든) 복원 아이콘을 보여주고, 누르면 기본 크기로 되돌린다.
   const DEFAULT_SIZE = { w: 448, h: 700 };
@@ -1450,13 +1277,6 @@
     size.h = clampH(size.h);
     panel.style.width = size.w + 'px';
     panel.style.height = size.h + 'px';
-    // 900px 이상(최대화·수동 확대)이면 사이드바 콘솔 레이아웃으로 전환
-    panel.classList.toggle('wide', size.w >= 900);
-    // 대시보드가 열려 있으면 새 폭 기준으로 차트를 다시 그린다 (디바운스)
-    if (view === 'dash' && dashData) {
-      clearTimeout(dashRzTimer);
-      dashRzTimer = setTimeout(() => { if (view === 'dash' && dashData) renderDash(dashData); }, 120);
-    }
   }
   applySize();
   applyPos();

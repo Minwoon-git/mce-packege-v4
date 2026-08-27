@@ -381,23 +381,20 @@
     const bw = (W - P.l - P.r) / rows.length;
     const plotH = H - P.t - P.b;
     rows.forEach((r, i) => {
-      let bar = null;
-      if (r.sent > 0) { // 0인 날은 막대를 그리지 않는다 (최소 높이 잔상 방지)
-        const h = Math.max((r.sent / ymax) * plotH, 2);
-        const x = P.l + bw * i + 1; // 막대 사이 2px 표면 간격
-        bar = el('rect', {
-          x, y: P.t + plotH - h, width: Math.max(bw - 2, 1), height: h,
-          rx: 4, fill: css('--s1'),
-        });
-        bar.setAttribute('clip-path', 'inset(0 0 -4px 0 round 4px 4px 0 0)'); // 데이터 끝만 둥글게
-        svg.appendChild(bar);
-      }
+      const h = Math.max((r.sent / ymax) * plotH, 2);
+      const x = P.l + bw * i + 1; // 막대 사이 2px 표면 간격
+      const bar = el('rect', {
+        x, y: P.t + plotH - h, width: Math.max(bw - 2, 1), height: h,
+        rx: 4, fill: css('--s1'),
+      });
+      bar.setAttribute('clip-path', 'inset(0 0 -4px 0 round 4px 4px 0 0)'); // 데이터 끝만 둥글게
+      svg.appendChild(bar);
       const hit = el('rect', { x: P.l + bw * i, y: P.t, width: bw, height: plotH, fill: 'transparent' });
       hit.addEventListener('mousemove', (e) => {
-        bar?.setAttribute('fill-opacity', '.8');
+        bar.setAttribute('fill-opacity', '.8');
         showTip(e.clientX, e.clientY, `<div class="t">${md(r.date)}</div>` + tipRow(css('--s1'), '발송', fmt(r.sent)));
       });
-      hit.addEventListener('mouseleave', () => { bar?.removeAttribute('fill-opacity'); hideTip(); });
+      hit.addEventListener('mouseleave', () => { bar.removeAttribute('fill-opacity'); hideTip(); });
       svg.appendChild(hit);
     });
     const box = document.getElementById('barChart');
@@ -591,8 +588,7 @@
         const a = document.createElement('div');
         a.className = 'act';
         a.innerHTML = `<span class="cmd"></span><span class="copy">클릭하여 복사</span>`;
-        // 라벨은 개조식(…해줘 → …)으로, 복사되는 명령은 원문 유지
-        a.querySelector('.cmd').textContent = ins.action.replace(/\s*해\s?(줘|주세요)\s*$/, '');
+        a.querySelector('.cmd').textContent = `"${ins.action}"`;
         a.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(ins.action);
