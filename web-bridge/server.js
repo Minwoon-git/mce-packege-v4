@@ -175,6 +175,10 @@ function toolDetail(input) {
 // 결과는 60초 캐시해 연속 요청마다 CLI를 새로 띄우지 않는다. (모델 호출이 아니라서 사용량 0)
 let probeCache = { ts: 0, needsAuth: false };
 let probeInflight = null;
+// 도구 호출 단계에서 인증 오류(리프레시 토큰 만료 등)가 났던 시각 — MCP 연결은 Connected로 보여
+// 프로브가 못 잡는 유형이라, 최근 30분 내 발생했으면 /api/mcp-status가 '인증 필요'로 답해 배너를 띄운다.
+// 재인증(mcp-login) 완료 시 초기화.
+let lastToolAuthErr = 0;
 function probeMcpAuth() {
   if (Date.now() - probeCache.ts < 60e3) return Promise.resolve(probeCache.needsAuth);
   if (probeInflight) return probeInflight;
@@ -202,9 +206,12 @@ function probeMcpAuth() {
   return probeInflight;
 }
 
-// SFMC 인증 상태 조회 — 확장이 패널을 열 때 상단 인증 배너 표시용으로 호출 (프로브 60초 캐시 재사용)
+// SFMC 인증 상태 조회 — 확장이 패널을 열 때 상단 인증 배너 표시용으로 호출 (프로브 60초 캐시 재사용).
+// 프로브가 정상이어도 최근 30분 내 도구 호출에서 인증 오류가 났으면 '인증 필요'로 답한다.
 app.get('/api/mcp-status', (_req, res) => {
-  probeMcpAuth().then((needsAuth) => res.json({ needsAuth }));
+  probeMcpAuth().then((needsAuth) =>
+    res.json({ needsAuth: needsAuth || Date.now() - lastToolAuthErr < 30 * 60e3 }),
+  );
 });
 
 app.post('/api/chat', (req, res) => {
@@ -299,8 +306,14 @@ app.post('/api/chat', (req, res) => {
       const line = buf.slice(0, idx).trim();
       buf = buf.slice(idx + 1);
       if (!line) continue;
-      // SFMC MCP 세션 만료 오류가 스트림(도구 결과)에 보이면 표시해 둔다
-      if (!authErr && /session is invalid or access is revoked/i.test(line)) authErr = true;
+      // SFMC 인증 계열 오류가 스트림(도구 결과)에 보이면 표시해 둔다.
+      // - "session is invalid or access is revoked": MCP 세션 만료
+      // - "refresh token is revoked/expired" / "obtain a new refresh token": SFMC 리프레시 토큰 만료
+      //   (이 경우 MCP 연결 자체는 Connected라 프로브로는 못 잡는다 — 2026-08-28 실측)
+      if (!authErr && /(session is invalid or access is revoked|refresh token is (revoked|expired)|obtain a new refresh token)/i.test(line)) {
+        authErr = true;
+        lastToolAuthErr = Date.now(); // 패널 재오픈 시 배너 표시용으로 기억
+      }
       try {
         handleEvent(JSON.parse(line));
       } catch {
@@ -382,6 +395,7 @@ app.post('/api/mcp-login', (_req, res) => {
     clearTimeout(timeout);
     mcpLoginProc = null;
     probeCache.ts = 0; // 재인증 직후엔 캐시를 비워 다음 요청이 새 상태를 보게 한다
+    lastToolAuthErr = 0; // 도구 단계 인증 오류 기억도 초기화 (배너 자동 소멸)
   };
   child.on('close', done);
   child.on('error', done);

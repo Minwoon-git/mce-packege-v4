@@ -202,6 +202,8 @@
     .head .status { font-size: 11.5px; opacity: .85; margin-top: 1px; display: flex; align-items: center; gap: 5px; }
     .head .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #34d399; }
     .head .status.busy::before { background: #fbbf24; animation: blink 1s infinite; }
+    .head .status.noauth::before { background: #ef4444; } /* SFMC 인증 필요 — 빨간불 (v1.16.2~) */
+    .fab.noauth .dot { background: #ef4444; }
     @keyframes blink { 50% { opacity: .3; } }
     .hbtn {
       border: none; background: rgba(255,255,255,.14); color: #fff;
@@ -614,13 +616,23 @@
   }
   const scrollBottom = () => (bodyEl.scrollTop = bodyEl.scrollHeight);
 
+  let authNeeded = false; // SFMC 인증 필요 상태 — 상태 점(빨간불)·배너와 동기화 (setAuthbar가 갱신)
   function setBusy(v, label) {
     busy = v;
     sendBtn.disabled = v;
     stopBtn.hidden = !v;
-    statusEl.textContent = v ? (label || '처리 중…') : '대기 중';
     statusEl.classList.toggle('busy', v);
     fab.classList.toggle('busy', v); // 플로팅 버튼 상태 점도 처리 중(노랑 깜빡임)으로 동기화
+    if (v) {
+      statusEl.textContent = label || '처리 중…';
+      statusEl.classList.remove('noauth');
+      fab.classList.remove('noauth');
+    } else {
+      // 대기 상태로 돌아올 때 인증 필요 여부를 반영 (🔴 연결 필요 / 🟢 대기 중)
+      statusEl.textContent = authNeeded ? '연결 필요' : '대기 중';
+      statusEl.classList.toggle('noauth', authNeeded);
+      fab.classList.toggle('noauth', authNeeded);
+    }
   }
 
   // ── 메시지 렌더링 ───────────────────────────────────────────
@@ -1159,7 +1171,14 @@
   const authbarBtn = $('.authbar .ab');
   let authPoll = null;
   function setAuthbar(needsAuth) {
+    authNeeded = needsAuth;
     authbar.hidden = !needsAuth;
+    // 헤더 상태 점·플로팅 버튼 점도 동기화 (처리 중이 아닐 때만 — 처리 중 표시가 우선)
+    if (!busy) {
+      statusEl.textContent = needsAuth ? '연결 필요' : '대기 중';
+      statusEl.classList.toggle('noauth', needsAuth);
+      fab.classList.toggle('noauth', needsAuth);
+    }
     if (!needsAuth) {
       clearInterval(authPoll);
       authPoll = null;
@@ -1171,6 +1190,15 @@
     chrome.runtime.sendMessage({ type: 'mcpStatus' }, (res) => {
       if (!chrome.runtime.lastError && res && typeof res.needsAuth === 'boolean') setAuthbar(res.needsAuth);
     });
+  }
+  // 페이지 로드 직후(버튼 노출 시점)부터 인증 상태를 감시 — 패널을 열기 전에도 플로팅 점이 빨간불로 표시된다.
+  // 이후 5분 간격으로 갱신 (서버가 60초 캐시하므로 부담 없음)
+  let authWatchStarted = false;
+  function startAuthWatch() {
+    if (authWatchStarted) return;
+    authWatchStarted = true;
+    checkAuth();
+    setInterval(checkAuth, 300e3);
   }
   function pollAuthUntilOk() {
     // 재인증 시작 후 완료를 감지해 배너를 지운다 (10초 간격, 최대 5분)
@@ -1644,6 +1672,7 @@
       console.log(`[MCE Bot v${VER}] 게이트 미설정 → 버튼 표시`, cfg);
       gateOk = true;
       applyVisibility();
+      startAuthWatch(); // 버튼이 보이는 순간부터 인증 상태 감시 (플로팅 점 빨간불)
       return;
     }
     console.log(`[MCE Bot v${VER}] 계정 게이트 검사 시작:`, allowed);
@@ -1682,6 +1711,7 @@
         console.log(`[MCE Bot v${VER}] 헤더에서 연결 BU 확인 → 버튼 표시`);
         gateOk = true;
         applyVisibility();
+        startAuthWatch(); // 버튼이 보이는 순간부터 인증 상태 감시 (플로팅 점 빨간불)
         clearInterval(timer);
       } else if (++tries >= 40) {
         console.log(`[MCE Bot v${VER}] 20초 내 연결 BU 미확인 → 버튼 미노출`);
