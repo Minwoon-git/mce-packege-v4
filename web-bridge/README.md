@@ -67,7 +67,7 @@ Claude Code CLI (cwd = 프로젝트 루트 → CLAUDE.md·스킬·에이전트·
 
 특성: 별도 스케줄 불필요, 보는 날에만 하루 최대 1회 Claude 실행(좌석 사용량 소량), PC 꺼짐 영향 없음.
 주의: SFMC 배치(02:00, 계정 표준시) 직전에 열면 "어제까지" 데이터로 갱신될 수 있음 — 정상 동작.
-- `POST /api/upload?name=` — 파일 첨부(드래그&드롭) 업로드. raw body로 받은 파일을 저장하고 `{ path, name }` 반환. 정의서(xlsx/xlsm/csv)는 `campaign_definitions\`, 그 외 허용 확장자(txt/sql/md/json)는 `uploads\`에 저장. 동명 파일은 타임스탬프를 붙여 보존, 그 외 확장자는 403, 최대 25MB
+- `POST /api/upload?name=` — 파일 첨부(드래그&드롭) 업로드. raw body로 받은 파일을 저장하고 `{ path, name }` 반환. 정의서(xlsx/xlsm/csv)는 `campaign_definitions\`, 그 외 허용 확장자(txt/sql/md/json/jpg/jpeg/png)는 `uploads\`에 저장. 동명 파일은 타임스탬프를 붙여 보존, 그 외 확장자는 403, 최대 25MB
 - `GET /api/file?path=` — 캠페인 산출물 다운로드. 확장이 답변 속 산출물 경로(정의서 xlsx·분석 리포트 등)를 이 링크(📎 칩)로 바꿔 말풍선에서 바로 내려받게 함. **허용 범위: `campaign_definitions\`·`reports\` 폴더 안의 xlsx·xlsm·csv·pptx·pdf·png·md·html만** — 그 외 경로/확장자는 403 (경로 조작 방지)
 
 ## 유의 사항

@@ -116,7 +116,7 @@ app.post('/api/journey-xlsx', async (req, res) => {
 // 정의서(xlsx/xlsm/csv)는 campaign_definitions\에 저장돼 "정의서 직접 첨부 → STEP 3" 흐름과 그대로 연결되고,
 // 그 외 허용 확장자(스키마 DDL 등)는 uploads\에 저장된다. 실행 파일 등은 거부.
 const UPLOAD_DEF_EXTS = new Set(['.xlsx', '.xlsm', '.csv']);
-const UPLOAD_ETC_EXTS = new Set(['.txt', '.sql', '.md', '.json']);
+const UPLOAD_ETC_EXTS = new Set(['.txt', '.sql', '.md', '.json', '.jpg', '.jpeg', '.png']);
 app.post('/api/upload', express.raw({ type: () => true, limit: '25mb' }), (req, res) => {
   const name = path.basename(String(req.query.name || '')).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').trim();
   const ext = path.extname(name).toLowerCase();

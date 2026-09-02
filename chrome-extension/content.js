@@ -531,7 +531,7 @@
         <div class="attach" style="display:none"></div>
         <form class="composer">
           <button class="attachb" type="button" title="파일 첨부">${ICONS.plus}</button>
-          <input class="fpick" type="file" multiple hidden accept=".xlsx,.xlsm,.csv,.txt,.sql,.md,.json">
+          <input class="fpick" type="file" multiple hidden accept=".xlsx,.xlsm,.csv,.txt,.sql,.md,.json,.jpg,.jpeg,.png">
           <textarea rows="1" placeholder="메시지 입력…"></textarea>
           <button class="send" type="submit" title="전송">${ICONS.send}</button>
           <button class="stopb" type="button" title="중지" hidden>${ICONS.stop}</button>
@@ -1079,7 +1079,7 @@
   // 패널에 파일을 놓으면 background 경유로 web-bridge(/api/upload)에 저장하고,
   // 저장된 절대 경로를 칩으로 보여준 뒤 전송 시 메시지 앞에 "📎 첨부 파일: <경로>"로 붙인다.
   // (정의서 xlsx/csv는 campaign_definitions\에 저장돼 "정의서 직접 첨부 → 저니 생성" 흐름과 연결됨)
-  const UP_EXTS = ['.xlsx', '.xlsm', '.csv', '.txt', '.sql', '.md', '.json'];
+  const UP_EXTS = ['.xlsx', '.xlsm', '.csv', '.txt', '.sql', '.md', '.json', '.jpg', '.jpeg', '.png'];
   const UP_MAX = 20 * 1024 * 1024;
   let pendingFiles = []; // { name, path|null, err|null }
 
