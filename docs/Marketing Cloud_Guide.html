@@ -49,6 +49,7 @@
       --code-bg: #1f2b38;
       --topbar: #0d1e30;
       --topbar-ink: #dfeaf5;
+      --logo-filter: brightness(0) invert(.88);
     }
   }
   :root[data-theme="dark"] {
@@ -73,6 +74,7 @@
     --code-bg: #1f2b38;
     --topbar: #0d1e30;
     --topbar-ink: #dfeaf5;
+    --logo-filter: brightness(0) invert(.88);
   }
 
   * { box-sizing: border-box; }
@@ -99,9 +101,11 @@
   nav.side {
     width: 268px; flex: none; background: var(--side-bg);
     border-right: 1px solid var(--line);
-    padding: 22px 14px 60px;
+    padding: 22px 14px 0;
     position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto;
+    display: flex; flex-direction: column;
   }
+  nav.side > details, nav.side > .root { flex: none; }
   .side .root {
     font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
     color: var(--ink); margin: 4px 10px 4px;
@@ -124,6 +128,12 @@
   .side details.grp[open] > summary::after { transform: rotate(45deg); }
   .side details.grp.pkgg > summary { color: var(--pkg-ink); }
   .side a.navlink { margin-left: 6px; }
+  .side .side-logo {
+    margin-top: auto; position: sticky; bottom: 0;
+    background: var(--side-bg);
+    padding: 14px 10px 16px; border-top: 1px solid var(--line);
+  }
+  .side .side-logo img { width: 80px; height: auto; display: block; filter: var(--logo-filter, none); }
   .side a.navlink {
     display: block; padding: 6px 12px;
     color: var(--ink-soft); text-decoration: none; font-size: 13.5px;
@@ -187,7 +197,14 @@
 
   .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0 26px; }
   @media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
-  .cardx { border: 1px solid var(--line); padding: 16px 18px; background: var(--surface); }
+  .cardx { border: 1px solid var(--line); padding: 16px 18px; background: var(--surface); position: relative; }
+  .cardx a.golink {
+    position: absolute; top: 10px; right: 12px;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; text-decoration: none; color: var(--accent-ink);
+    border: 1px solid var(--line); background: var(--surface);
+  }
+  .cardx a.golink:hover { border-color: var(--accent); background: var(--accent-soft); }
   .cardx h4 { margin: 0 0 6px; font-size: 15.5px; font-weight: 600; }
   .cardx p { font-size: 14px; margin: 0; }
   .cardx .chip {
@@ -272,15 +289,11 @@
   <details class="grp" open>
     <summary>Marketing Cloud Engagement</summary>
     <a class="navlink" href="#intro">MCE 소개</a>
-    <a class="navlink" href="#data">데이터 구조</a>
+    <a class="navlink" href="#data">데이터 모델</a>
     <a class="navlink" href="#studios">스튜디오 &amp; 빌더</a>
-    <a class="navlink" href="#content">콘텐츠 제작 · 개인화</a>
-    <a class="navlink" href="#journey">Journey Builder</a>
-    <a class="navlink" href="#automation">Automation Studio 심화</a>
     <a class="navlink" href="#deliver">발송 인프라</a>
     <a class="navlink" href="#subscribers">구독자 · 수신거부 관리</a>
-    <a class="navlink" href="#tracking">추적 · 리포팅</a>
-    <a class="navlink" href="#einstein">Einstein AI 기능</a>
+    <a class="navlink" href="#einstein">Einstein AI</a>
     <a class="navlink" href="#crm">CRM 연동 (MC Connect)</a>
     <a class="navlink" href="#api">API &amp; 확장</a>
   </details>
@@ -298,6 +311,7 @@
     <a class="navlink pkgl" href="#pkg-setup">설치 &amp; 연결</a>
     <a class="navlink pkgl" href="#pkg-security">보안 관리</a>
   </details>
+  <div class="side-logo"><img src="data:image/png;base64,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" alt="MILVUS"></div>
 </nav>
 
 <main>
@@ -318,7 +332,7 @@
     <li><b>성과 추적</b> — 발송·오픈·클릭·반송 데이터를 Data View로 축적, 후속 캠페인에 재활용</li>
   </ul>
 
-  <h2>MCE 아키텍처 — 데이터 인입부터 발송까지</h2>
+  <h2>MCE 아키텍처</h2>
   <div class="diagram">
     <div class="dg-flow">
       <div class="dg-panel">
@@ -361,7 +375,7 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
  └─ BU C (테스트)    ── 커스텀 액티비티·키 값도 BU마다 다름</pre></div>
   <div class="note"><b class="label">Note</b>같은 계정이라도 로그인 사용자에게 BU 접근 권한이 없으면 그 BU의 데이터를 볼 수 없음. API 연동(Installed Package) 권한도 BU 단위로 동작.</div>
 
-  <h2>포지셔닝 — Salesforce 마케팅 제품군에서의 위치</h2>
+  <h2>포지셔닝 — Salesforce 마케팅 제품군</h2>
   <div class="tbl"><table>
     <thead><tr><th>제품</th><th>역할</th></tr></thead>
     <tbody>
@@ -376,42 +390,119 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 </div>
 </div>
 
-<!-- ═══════════ 데이터 구조 ═══════════ -->
+<!-- ═══════════ 데이터 모델 ═══════════ -->
 <div class="page" id="data">
 <div class="content">
-  <h1>데이터 구조</h1>
+  <h1>데이터 모델</h1>
+  <p><b>MCE가 고객을 식별하고 데이터를 담는 방식</b></p>
+  <p>캠페인의 대상 선정·발송·추적이 전부 이 모델 위에서 동작. 핵심은 "누가 한 사람인가(Contact)" · "데이터를 어디에 담는가(Data Extension)" · "반응이 어디에 쌓이는가(Data View)"의 세 축.</p>
 
-  <h2>Contact와 Subscriber</h2>
+  <h2>Contact와 Subscriber — 고객 식별</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>구분</th><th>Contact</th><th>Subscriber</th></tr></thead>
+    <tbody>
+      <tr><td><b>범위</b></td><td>채널 무관 "한 사람"</td><td>이메일 채널 관점의 수신자</td></tr>
+      <tr><td><b>식별자</b></td><td><code>Contact Key</code></td><td><code>Subscriber Key</code></td></tr>
+      <tr><td><b>마스터 목록</b></td><td>All Contacts</td><td>All Subscribers (상태: Active·Unsubscribed·Bounced·Held)</td></tr>
+      <tr><td><b>관리 도구</b></td><td>Contact Builder</td><td>Email Studio</td></tr>
+    </tbody>
+  </table></div>
   <ul class="plain">
-    <li><b>Contact</b> — 채널 무관 "한 사람". <code>Contact Key</code>로 식별되며 이메일·SMS·푸시 주소가 모두 이 아래에 연결</li>
-    <li><b>Subscriber</b> — 이메일 채널 관점의 수신자. <code>Subscriber Key</code>로 식별 (일반적으로 Contact Key와 동일 값 사용 권장)</li>
-    <li><b>All Contacts / All Subscribers</b> — 계정 전체의 연락처·구독자 마스터 목록</li>
+    <li><b>Contact Point</b> — 이메일 주소·전화번호·푸시 토큰 등 채널별 주소가 Contact 아래에 연결. 한 사람이 여러 채널 주소를 가져도 Contact는 1개</li>
+    <li><b>키 통일 권장</b> — 일반적으로 Subscriber Key = Contact Key 동일 값 사용. 채널 간 동일인 매칭과 추적 연결의 기준이 됨</li>
+    <li><b>키 전략</b> — 이메일 주소를 키로 쓰면 주소 변경·중복(한 주소 여러 명) 문제가 생김. 회원번호·CRM ID(18자) 같은 <b>불변 ID</b>를 키로 쓰는 것이 표준</li>
+    <li><b>키가 곧 연결 고리</b> — 저니 진입·발송·오픈/클릭 추적·수신거부가 모두 이 키 기준으로 이어짐. 초기 설계에서 가장 중요한 결정</li>
   </ul>
 
-  <h2>Data Extension (DE)</h2>
-  <p>MCE의 <b>데이터 테이블</b>. 관계형 DB의 테이블처럼 컬럼(필드)·기본키·데이터 타입을 갖고, 고객 마스터·구매 이력·세그먼트·발송 대상까지 모든 데이터가 DE에 저장.</p>
+  <h2>Data Extension — 데이터 테이블</h2>
+  <p>MCE의 관계형 테이블. 고객 마스터·구매 이력·세그먼트·발송 대상까지 모든 데이터가 DE에 저장되며, 필드·타입·기본키를 갖춤.</p>
+
+  <h3>필드 타입</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>타입</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td><code>Text</code></td><td>문자열 — 길이 지정(최대 4000), 한글 포함 일반 속성</td></tr>
+      <tr><td><code>Number</code> / <code>Decimal</code></td><td>정수 / 소수(전체·소수 자릿수 지정) — 금액·횟수</td></tr>
+      <tr><td><code>Date</code></td><td>날짜·시각 — 가입일·최근 구매일 (타임존 주의)</td></tr>
+      <tr><td><code>Boolean</code></td><td>true/false — 동의 여부 등</td></tr>
+      <tr><td><code>EmailAddress</code></td><td>이메일 주소 — Sendable DE의 발송 주소 필드는 반드시 이 타입</td></tr>
+      <tr><td><code>Phone</code> / <code>Locale</code></td><td>전화번호(SMS 발송용) / 로케일 코드</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>주요 속성</h3>
   <ul class="plain">
-    <li><b>Sendable DE</b> — 발송 대상으로 쓸 수 있는 DE. Subscriber Key와 연결(Send Relationship) 필수</li>
-    <li><b>Filtered DE</b> — 조건 필터로 만든 부분집합 DE</li>
-    <li><b>적재 방법</b> — Import(SFTP/CSV) · SQL Query 결과 · API upsert · 수동 업로드</li>
+    <li><b>Primary Key</b> — 행의 고유 기준. Import·API upsert 시 "같은 키면 갱신, 없으면 삽입"의 판정 기준이므로 설계 시 필수 지정</li>
+    <li><b>Sendable + Send Relationship</b> — 발송 대상으로 쓰려면 Sendable 설정 후, DE의 어떤 필드를 <code>Subscriber Key</code>에 연결할지 지정. 이 연결이 없으면 저니 진입 DE로 쓸 수 없음</li>
+    <li><b>Nullable · 기본값</b> — 필드별 빈값 허용 여부와 기본값 지정</li>
+    <li><b>Data Retention</b> — DE 단위 보존 정책(전체 삭제 / 행 단위 삭제 / 기간) 설정 가능. 미설정 시 무기한 보존</li>
   </ul>
 
-  <h2>Data View — 발송 결과 테이블</h2>
-  <p>발송·반응 로그가 자동으로 쌓이는 시스템 테이블. UI에는 보이지 않고 <b>SQL Query로만</b> 조회 가능.</p>
+  <h3>DE 유형</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>유형</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td><b>Standard DE</b></td><td>직접 정의하는 일반 테이블</td></tr>
+      <tr><td><b>Filtered DE</b></td><td>다른 DE에 조건 필터를 걸어 만든 부분집합</td></tr>
+      <tr><td><b>Random DE</b></td><td>원본 DE를 비율/건수로 무작위 분할(1회 최대 12개) — A/B 테스트 그룹 분리</td></tr>
+      <tr><td><b>Synchronized DE</b></td><td>Marketing Cloud Connect로 CRM 오브젝트를 주기 복제한 읽기 전용 DE</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>적재 방법</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>방법</th><th>방식</th><th>적합한 경우</th></tr></thead>
+    <tbody>
+      <tr><td><b>Import</b></td><td>SFTP의 CSV를 Automation으로 적재</td><td>외부 시스템 일배치 인입</td></tr>
+      <tr><td><b>SQL Query</b></td><td>다른 DE·Data View를 조회해 기록</td><td>세그먼트·집계 테이블 생성</td></tr>
+      <tr><td><b>API upsert</b></td><td>REST/SOAP로 행 단위 삽입·갱신</td><td>실시간 이벤트 반영</td></tr>
+      <tr><td><b>수동 업로드</b></td><td>UI에서 파일 업로드</td><td>일회성 목록</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Data View — 발송·반응 로그</h2>
+  <p>발송·반응 로그가 자동으로 쌓이는 시스템 테이블. UI에 보이지 않고 <b>SQL Query(Automation Studio·Query Studio)로만</b> 조회 가능.</p>
   <div class="tbl"><table>
     <thead><tr><th>Data View</th><th>내용</th></tr></thead>
     <tbody>
-      <tr><td><code>_Sent</code></td><td>발송 완료 로그</td></tr>
+      <tr><td><code>_Sent</code></td><td>발송 완료 로그 (JobID·발송 시각)</td></tr>
       <tr><td><code>_Open</code></td><td>이메일 오픈 로그</td></tr>
-      <tr><td><code>_Click</code></td><td>링크 클릭 로그</td></tr>
-      <tr><td><code>_Bounce</code></td><td>반송(하드/소프트 바운스) 로그</td></tr>
-      <tr><td><code>_Unsubscribe</code> 등</td><td>수신거부·구독 상태 변경 로그</td></tr>
+      <tr><td><code>_Click</code></td><td>링크 클릭 로그 (URL별)</td></tr>
+      <tr><td><code>_Bounce</code></td><td>반송 로그 (하드/소프트 구분)</td></tr>
+      <tr><td><code>_Unsubscribe</code></td><td>수신거부 로그</td></tr>
+      <tr><td><code>_Subscribers</code></td><td>구독자 마스터 상태 (Active·Held 등)</td></tr>
+      <tr><td><code>_Job</code></td><td>발송 잡 메타 (이메일 이름·제목·발송 유형)</td></tr>
+      <tr><td><code>_Journey</code> · <code>_JourneyActivity</code></td><td>저니·액티비티 메타 — 발송 로그와 JOIN해 "어느 저니의 어느 단계 발송인지" 식별</td></tr>
     </tbody>
   </table></div>
   <div class="note"><b class="label">Note</b>Data View 보존 기간은 기본 6개월. 장기 분석을 하려면 주기적으로 별도 DE에 적재(백업)하는 파이프라인 구성이 필요.</div>
+  <p>참고 — 전체 Data View 종류와 필드 스키마 레퍼런스: <a href="https://dataviews.io/" target="_blank" rel="noopener">dataviews.io</a></p>
 
   <h2>Contact Builder</h2>
-  <p>DE 간 관계(Attribute Group)와 Contact 중심 데이터 모델을 설계하는 도구. Journey의 Decision Split에서 진입 DE 밖의 속성을 참조할 때 이 모델을 사용.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>메뉴</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><b>Data Designer</b></td><td>Attribute Group으로 DE들을 Contact에 연결(관계 정의)</td></tr>
+      <tr><td><b>All Contacts</b></td><td>계정 전체 Contact 조회·검색 — 채널 주소·속성·이력의 통합 뷰</td></tr>
+      <tr><td><b>Data Sources</b></td><td>Contact 데이터가 들어오는 원천(Synchronized·API·시스템 소스) 확인</td></tr>
+      <tr><td><b>Data Extensions</b></td><td>DE 목록·필드 관리 (Email Studio Subscribers 메뉴와 같은 대상)</td></tr>
+      <tr><td><b>Imports</b></td><td>파일 → DE 가져오기 정의 생성·관리</td></tr>
+      <tr><td><b>Contacts Configuration</b></td><td>Contact 동작 설정 — 삭제(Contact Delete, GDPR 등 개인정보 삭제 처리 · 실행 후 복구 불가) 포함</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="plain">
+    <li><b>저니 연계</b> — Decision Split에서 진입 DE 밖의 속성(예: 등급 마스터)을 참조할 때 Data Designer의 관계를 사용</li>
+  </ul>
+
+  <h2>참고 문서</h2>
+  <ul class="plain">
+    <li><a href="https://help.salesforce.com/s/articleView?id=sf.mc_cab_contact_builder.htm&language=en_US&type=5" target="_blank" rel="noopener">Contact Builder in Marketing Cloud Engagement</a> — Salesforce Help</li>
+    <li><a href="https://help.salesforce.com/s/articleView?language=en_US&id=mktg.mc_cab_all_contacts.htm&type=5" target="_blank" rel="noopener">All Contacts in Contact Builder</a> — Salesforce Help</li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=mc_cab_data_designer.htm&language=en_US" target="_blank" rel="noopener">Data Designer in Contact Builder</a> — Salesforce Help</li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=mc_es_de_properties.htm&language=en_US&type=5" target="_blank" rel="noopener">Data Extension Properties</a> — Salesforce Help</li>
+    <li><a href="https://help.salesforce.com/s/articleView?language=en_US&id=sf.mc_as_data_views.htm&type=5" target="_blank" rel="noopener">Data Views</a> — Salesforce Help</li>
+    <li><a href="https://help.salesforce.com/s/articleView?id=000387245&language=en_US&type=1" target="_blank" rel="noopener">Marketing Cloud Data Retention</a> — Salesforce Help</li>
+  </ul>
 </div>
 </div>
 
@@ -422,34 +513,40 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 
   <div class="cards">
     <div class="cardx">
+      <a class="golink" href="#journey" title="Journey Builder 상세 페이지로 이동">↗</a>
       <span class="chip">Builder</span>
       <h4>Journey Builder</h4>
-      <p>고객 여정을 캔버스에 설계·자동 실행하는 핵심 모듈. 진입 → 발송 → 대기 → 분기 → 종료 흐름 구성. (다음 장에서 상세)</p>
+      <p>고객 여정을 캔버스에 설계·자동 실행하는 핵심 모듈</p>
     </div>
     <div class="cardx">
+      <a class="golink" href="#content" title="Content Builder 상세 페이지로 이동">↗</a>
       <span class="chip">Builder</span>
       <h4>Content Builder</h4>
-      <p>이메일·템플릿·이미지·코드 스니펫 등 발송 콘텐츠의 통합 저장소. 폴더 구조로 에셋 관리, 개인화 문법(AMPscript·Personalization String) 지원.</p>
+      <p>이메일·템플릿·이미지·코드 스니펫 등 발송 콘텐츠의 통합 저장소</p>
     </div>
     <div class="cardx">
+      <a class="golink" href="#email" title="Email Studio 상세 페이지로 이동">↗</a>
       <span class="chip">Studio</span>
       <h4>Email Studio</h4>
-      <p>이메일 채널 관리 — 구독자 리스트, 발신 프로필(Sender Profile), 발송 분류(Send Classification), A/B 테스트, 수동 발송.</p>
+      <p>이메일 채널의 발송 실행·대상 관리·추적 담당</p>
     </div>
     <div class="cardx">
+      <a class="golink" href="#automation" title="Automation Studio 상세 페이지로 이동">↗</a>
       <span class="chip">Studio</span>
       <h4>Automation Studio</h4>
-      <p>배치 자동화 도구. SQL Query · Import · File Transfer · Script 액티비티를 스케줄(매일 새벽 등)로 예약 실행. 데이터 파이프라인의 중심.</p>
+      <p>데이터 처리·발송 작업을 스케줄로 예약 실행하는 자동화 모듈</p>
     </div>
     <div class="cardx">
+      <a class="golink" href="#mobile" title="Mobile Studio 상세 페이지로 이동">↗</a>
       <span class="chip">Studio</span>
       <h4>Mobile Studio</h4>
-      <p>모바일 채널 3종 — MobileConnect(SMS/MMS), MobilePush(앱 푸시·지오펜스), GroupConnect(LINE·Facebook Messenger). 국내 알림톡/카카오는 기본 제공이 아니라 커스텀 액티비티(벤더 연동)로 처리.</p>
+      <p>모바일 채널 3종 — MobileConnect(SMS/MMS), MobilePush(앱 푸시·지오펜스), GroupConnect(LINE·Facebook Messenger)</p>
     </div>
     <div class="cardx">
+      <a class="golink" href="#tracking" title="Analytics Builder 상세 페이지로 이동">↗</a>
       <span class="chip">Builder</span>
       <h4>Analytics Builder</h4>
-      <p>발송 성과 리포트·트래킹. 심화 분석은 Data View를 SQL로 집계하거나 Intelligence 제품 연계.</p>
+      <p>발송 성과 리포트·트래킹</p>
     </div>
   </div>
 
@@ -468,6 +565,17 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 <div class="page" id="journey">
 <div class="content">
   <h1>Journey Builder</h1>
+  <p><b>고객 여정을 캔버스에 설계해 자동 실행하는 MCE의 핵심 모듈</b></p>
+
+  <h2>저니 만들기 — 기본 순서</h2>
+  <ol class="steps">
+    <li><b>생성</b> — Journey Builder → Create New Journey → <b>Multi-Step Journey</b> 선택 (단일 발송이면 Single Send)</li>
+    <li><b>진입 설정</b> — 캔버스 왼쪽에 Entry Source 배치. Sendable DE를 선택하고 진입 필터·스케줄(1회/반복)을 설정 — 이 선언이 Event Definition</li>
+    <li><b>흐름 구성</b> — 액티비티를 순서대로 드래그: 이메일 → Wait → 분기(Decision/Engagement Split) → 후속 발송</li>
+    <li><b>설정 확정</b> — 재진입 정책(Entry Mode)·Goal(목표)·발송 설정(Send Classification) 지정</li>
+    <li><b>검증·테스트</b> — <b>Validate</b>로 구성 오류 확인 → Test로 테스트 진입 확인</li>
+    <li><b>발행(Activate)</b> — 발행 순간부터 진입 조건 충족 고객이 실제로 흐르기 시작 — 발행 전 Draft 상태에서 최종 검토</li>
+  </ol>
 
   <h2>진입 (Entry Source)</h2>
   <div class="tbl"><table>
@@ -511,6 +619,30 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
     <li><b>Published(Running)</b> — 발행됨. 진입 조건 충족 고객이 실제로 흐름</li>
     <li><b>Paused / Stopped</b> — 일시정지·중지. 수정 후 새 버전으로 재발행</li>
   </ol>
+
+  <h2>Goal과 Exit Criteria</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>설정</th><th>역할</th><th>예시</th></tr></thead>
+    <tbody>
+      <tr><td><b>Goal</b></td><td>저니의 목표를 DE 속성 조건으로 정의해 달성률 측정. "달성 시 조기 이탈" 옵션을 켜면 목표를 이룬 고객은 남은 메시지를 받지 않음</td><td>구매 완료 필드가 채워지면 목표 달성 → 리마인드 중단</td></tr>
+      <tr><td><b>Exit Criteria</b></td><td>조건 충족 시 여정에서 강제 이탈시키는 안전장치</td><td>수신거부·환불 고객을 남은 단계에서 제외</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>버전 관리</h2>
+  <ul class="plain">
+    <li>발행 중인 저니를 수정하면 <b>새 버전</b>이 생성됨 — 기존 진입자는 원래 버전의 흐름을 그대로 따라가고, 신규 진입자만 새 버전으로 진입</li>
+    <li>버전이 쌓이면 어떤 버전이 살아 있는지 관리가 필요 — 오래된 버전은 Stop으로 정리</li>
+  </ul>
+
+  <h2>모니터링</h2>
+  <ul class="plain">
+    <li><b>캔버스 실시간 인원</b> — 발행 후 캔버스에서 액티비티별 현재 인원·누적 통과 인원을 바로 확인</li>
+    <li><b>Health / Analytics</b> — 진입 실패(Contact 오류 등)·발송 실패 알림, 단계별 성과(오픈·클릭·Goal 달성률) 확인</li>
+    <li><b>진입이 0명일 때 점검 순서</b> — Entry DE에 데이터가 있는지 → 스케줄이 실행됐는지 → 진입 필터가 전부 걸러내지 않는지 → DE가 Sendable인지</li>
+  </ul>
+
+  <div class="warn"><b class="label">자주 하는 실수</b>① 진입 DE가 Sendable이 아니거나 Send Relationship 미지정 ② Engagement Split 앞에 이메일 없음 ③ 재진입을 Anytime으로 잘못 설정해 같은 사람이 반복 진입 ④ 발행 후 수정이 새 버전을 만든다는 걸 모르고 "수정했는데 반영이 안 된다"고 혼동 — 기존 진입자는 옛 버전을 따라감.</div>
 </div>
 </div>
 
@@ -621,7 +753,43 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 <!-- ═══════════ 콘텐츠 제작 · 개인화 ═══════════ -->
 <div class="page" id="content">
 <div class="content">
-  <h1>콘텐츠 제작 · 개인화</h1>
+  <h1>Content Builder</h1>
+  <p><b>Content Builder에서 이메일·템플릿·이미지 등 발송 콘텐츠를 만들고, 받는 사람마다 다른 내용을 보여주는 개인화를 적용하는 방법</b></p>
+
+  <h2>이메일 제작 방식</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>방식</th><th>설명</th><th>적합한 경우</th></tr></thead>
+    <tbody>
+      <tr><td><b>Template-based</b></td><td>템플릿 레이아웃에 콘텐츠 블록을 드래그해 조립</td><td>표준 방식 — 브랜드 일관성·반응형 자동 처리</td></tr>
+      <tr><td><b>HTML Paste</b></td><td>코딩된 HTML을 그대로 붙여넣기</td><td>디자인 자유도 최대 — 반응형·클라이언트 호환은 직접 책임</td></tr>
+      <tr><td><b>Text-only</b></td><td>텍스트 전용 메일</td><td>알림·거래성 간단 안내</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>이메일 템플릿 만들기</h2>
+  <ol class="steps">
+    <li><b>생성</b> — Content Builder → Create → <b>Template</b> 선택. 빈 레이아웃에서 시작하거나, 기존 이메일을 템플릿으로 저장하거나, HTML을 붙여넣어 시작</li>
+    <li><b>레이아웃 구성</b> — 행·열 구조를 잡고, 잠글 영역(헤더·푸터)과 편집 가능한 영역(본문)을 구분</li>
+    <li><b>공통 요소 배치</b> — 로고·푸터 등 모든 메일에 반복될 요소를 넣음. 푸터에는 수신거부 링크·회사 물리 주소 등 법적 필수 요소 포함</li>
+    <li><b>재사용</b> — 저장 후 이메일 생성 시 이 템플릿을 선택 → 본문 블록만 갈아끼우며 캠페인마다 재사용</li>
+  </ol>
+
+  <h2>파일 업로드 — 이미지·문서</h2>
+  <ol class="steps">
+    <li><b>업로드</b> — Content Builder 홈에 파일을 <b>드래그 앤 드롭</b>하거나 Create → Upload로 이미지·문서를 올림</li>
+    <li><b>정리</b> — 폴더·이름·태그를 지정해 보관 (검색과 재사용의 기준이 되므로 폴더 규칙을 미리 정하는 것이 좋음)</li>
+    <li><b>URL 발급</b> — 업로드된 파일은 SFMC가 호스팅하는 URL을 받아 이메일·CloudPages 어디서든 참조 가능</li>
+    <li><b>삽입</b> — 이메일 편집기에서 Image 블록을 놓고 업로드한 이미지를 선택</li>
+  </ol>
+  <div class="note"><b class="label">Note</b>SAP(Account Branding)가 구성된 계정은 이미지·링크 URL이 공유 도메인 대신 브랜드 도메인으로 래핑되어 발송됨.</div>
+
+  <h2>콘텐츠 블록 — 재사용 단위</h2>
+  <p>이메일 본문을 구성하는 부품. 자주 쓰는 블록은 저장해 여러 이메일에서 재사용.</p>
+  <ul class="plain">
+    <li><b>기본 블록</b> — Text · Image · Button · HTML · Free Form (자유 편집)</li>
+    <li><b>개인화 블록</b> — Dynamic Content (규칙 기반 교체) · Einstein Content Selection (AI 자동 선택)</li>
+    <li><b>레이아웃 블록</b> — 다단 구성·여백 조정</li>
+  </ul>
 
   <h2>개인화 도구 3단계</h2>
   <div class="tbl"><table>
@@ -661,7 +829,17 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 <!-- ═══════════ Automation Studio 심화 ═══════════ -->
 <div class="page" id="automation">
 <div class="content">
-  <h1>Automation Studio 심화</h1>
+  <h1>Automation Studio</h1>
+  <p><b>SQL·Import·File Transfer 등을 예약 실행하는 배치 자동화 모듈 — 데이터 파이프라인의 중심</b></p>
+
+  <h2>오토메이션 만들기 — 기본 순서</h2>
+  <ol class="steps">
+    <li><b>생성</b> — Automation Studio → New Automation, 이름·폴더 지정</li>
+    <li><b>시작 방식 선택</b> — Schedule(예약) 또는 File Drop(파일 감지)을 캔버스에 배치</li>
+    <li><b>Step 구성</b> — 액티비티를 Step에 순서대로 배치 (예: Step 1 File Transfer → Step 2 Import → Step 3 SQL Query → Step 4 Verification)</li>
+    <li><b>테스트</b> — 저장 후 <b>Run Once</b>로 1회 실행해 각 Step 결과 확인</li>
+    <li><b>활성화</b> — Schedule을 설정하고 <b>Active</b>로 전환 — Run Once 성공과 별개로, Active를 켜지 않으면 예약 실행되지 않음</li>
+  </ol>
 
   <h2>시작 방식 (Starting Source)</h2>
   <div class="tbl"><table>
@@ -694,6 +872,22 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
     <li><b>SELECT만 가능</b> — INSERT/UPDATE/DELETE 문 사용 불가, 결과 반영은 대상 DE 설정(Overwrite/Append/Update)으로</li>
     <li>실행 시간 <b>30분 제한</b> — 초과 시 타임아웃, 대용량은 쿼리 분할·사전 집계로 우회</li>
   </ul>
+
+  <h2>Step 실행 구조</h2>
+  <ul class="plain">
+    <li><b>Step은 순차, Step 안은 병렬</b> — Step 1이 끝나야 Step 2가 시작되고, 같은 Step 안의 액티비티들은 동시에 실행됨</li>
+    <li><b>의존 관계는 Step으로 분리</b> — "Import 결과를 SQL이 읽는" 관계면 반드시 다른 Step에 배치. 같은 Step에 두면 Import가 끝나기 전에 SQL이 돌아 빈 결과가 나올 수 있음</li>
+    <li><b>실패 시 중단</b> — 한 액티비티가 오류면 그 시점에서 오토메이션이 멈춤 — Verification을 중간에 두면 "0건인데 발송" 같은 사고를 앞 단계에서 차단</li>
+  </ul>
+
+  <h2>모니터링 · 오류 알림</h2>
+  <ul class="plain">
+    <li><b>Overview 캘린더/목록</b> — 실행 예정·완료·오류 상태를 한눈에 확인</li>
+    <li><b>Activity 로그</b> — 실행 인스턴스별 Step·액티비티 단위 성공/실패와 오류 메시지 확인</li>
+    <li><b>알림 설정</b> — 오토메이션별로 완료/오류 시 이메일 알림 수신자 지정 — 새벽 배치는 오류 알림을 반드시 걸어둘 것</li>
+  </ul>
+
+  <div class="warn"><b class="label">Important — 스케줄 타임존</b>스케줄 시각은 사용자 설정 타임존 기준으로 표시되지만, 계정·시스템 기준 시간대(미국 중부, CST)와 혼동하면 "새벽 3시로 걸었는데 오후에 도는" 사고가 남. 스케줄 저장 후 <b>다음 실행 예정 시각</b>을 반드시 확인.</div>
 </div>
 </div>
 
@@ -738,7 +932,17 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 <!-- ═══════════ 추적 · 리포팅 ═══════════ -->
 <div class="page" id="tracking">
 <div class="content">
-  <h1>추적 · 리포팅</h1>
+  <h1>Analytics Builder</h1>
+  <p><b>발송 성과의 추적·집계·리포팅을 담당하는 빌더</b></p>
+
+  <h2>구성 요소</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>구성</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><b>Intelligence Reports</b></td><td>이메일·저니·푸시 성과의 대시보드·리포트</td></tr>
+      <tr><td><b>Reports</b></td><td>레거시 표준 리포트</td></tr>
+    </tbody>
+  </table></div>
 
   <h2>기본 지표</h2>
   <div class="tbl"><table>
@@ -771,8 +975,10 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
 <!-- ═══════════ Einstein AI ═══════════ -->
 <div class="page" id="einstein">
 <div class="content">
-  <h1>Einstein AI 기능</h1>
+  <h1>Einstein AI</h1>
+  <p><b>계정의 발송·반응 이력을 학습해 "누구에게 · 언제 · 얼마나 · 무엇을" 보낼지 예측하는 MCE 내장 AI</b></p>
 
+  <h2>발송 최적화 기능</h2>
   <div class="tbl"><table>
     <thead><tr><th>기능</th><th>예측하는 것</th><th>쓰는 곳</th></tr></thead>
     <tbody>
@@ -784,7 +990,22 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
     </tbody>
   </table></div>
 
-  <div class="note"><b class="label">Note</b>Einstein 기능은 계정의 <b>과거 발송·반응 데이터를 학습</b>해야 동작 — 활성화 직후엔 데이터 축적 기간(통상 수십 일 이상)이 필요하고, 발송량이 적은 계정에선 예측 품질이 낮을 수 있음.</div>
+  <h2>콘텐츠 · 모니터링 기능</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>기능</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><b>Einstein Email/Web Recommendations</b></td><td>행동 이력 기반 상품·콘텐츠 추천 — 이메일 오픈 시점 또는 웹페이지에 개인별 추천 블록 노출</td></tr>
+      <tr><td><b>Einstein Content Tagging</b></td><td>업로드된 이미지에 태그 자동 부여 — Content Builder 에셋 검색·정리 효율화</td></tr>
+      <tr><td><b>Einstein Messaging Insights</b></td><td>발송 성과의 이상 징후(급락·급등) 자동 감지·알림</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>사용 전 준비</h2>
+  <ul class="plain">
+    <li><b>활성화</b> — 상단 내비게이션의 Einstein 메뉴에서 기능별 대시보드 확인·활성화 (기능 단위로 켬)</li>
+    <li><b>학습 데이터</b> — 계정의 과거 발송·반응 데이터를 학습해야 동작. 활성화 직후엔 데이터 축적 기간(통상 수십 일 이상)이 필요하고, 발송량이 적은 계정에선 예측 품질이 낮을 수 있음</li>
+    <li><b>조합 활용</b> — 저니에서 STO(발송 시각)와 Engagement Frequency Split(피로도 분기)을 함께 쓰면 "적정 빈도로 · 최적 시각에" 발송하는 구성이 됨</li>
+  </ul>
 </div>
 </div>
 
@@ -809,6 +1030,121 @@ MCE 계정 (테넌트 — 28자 Subdomain으로 식별)
     <li><b>BU 매핑</b> — CRM 조직 ↔ MCE BU 연결 구성은 초기 설치 시 결정</li>
   </ul>
   <div class="note"><b class="label">Note</b>MC Connect는 CRM 측 관리 패키지(managed package) 설치 + 양쪽 계정 연결 작업이 필요한 구축 항목 — 사용 중인 CRM이 없다면 이 장은 건너뛰어도 무방.</div>
+</div>
+</div>
+
+<!-- ═══════════ Email Studio ═══════════ -->
+<div class="page" id="email">
+<div class="content">
+  <h1>Email Studio</h1>
+  <p><b>이메일 채널의 발송 실행·대상 관리·추적을 담당하는 스튜디오</b></p>
+  <h2>화면 구성 — 상단 메뉴</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>메뉴</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><b>Overview</b></td><td>홈 화면 — 최근 작업 항목(이메일·List·DE)과 발송 현황(Past/Pending) 요약</td></tr>
+      <tr><td><b>Content</b></td><td>이메일 콘텐츠 영역 — 현재는 Content Builder로 통합되어 그쪽에서 제작</td></tr>
+      <tr><td><b>Subscribers</b></td><td>발송 대상 관리 — List · Group · Data Extension · Publication/Suppression List</td></tr>
+      <tr><td><b>Interactions</b></td><td>발송 실행 자동화 — Triggered/User-Initiated 발송 정의, Import, Data Filter</td></tr>
+      <tr><td><b>A/B Testing</b></td><td>A/B 테스트 생성·승자 판정 결과</td></tr>
+      <tr><td><b>Tracking</b></td><td>발송 건별 실적(오픈·클릭·반송) 확인 — 상세는 추적·리포팅 장 참조</td></tr>
+      <tr><td><b>Admin</b></td><td>발송 설정 — Sender Profile·Delivery Profile·Send Classification·Reply Mail Management 등 — 상세는 발송 인프라 장 참조</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>발송 방식 4종</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>방식</th><th>동작</th><th>적합한 경우</th></tr></thead>
+    <tbody>
+      <tr><td><b>Guided Send</b></td><td>UI 마법사로 대상·콘텐츠를 골라 즉시/예약 수동 발송</td><td>단발성 공지·뉴스레터</td></tr>
+      <tr><td><b>User-Initiated Send</b></td><td>대상·콘텐츠·설정을 발송 정의로 저장해 실행 — Automation에서 스케줄 반복 가능</td><td>정기 발송 (주간 뉴스레터 등)</td></tr>
+      <tr><td><b>Triggered Send</b></td><td>API/이벤트 호출 시 1인 단위 즉시 발송</td><td>주문 확인·비밀번호 재설정 등 거래성</td></tr>
+      <tr><td><b>Journey 발송</b></td><td>Journey Builder의 이메일 액티비티로 여정 안에서 발송</td><td>캠페인 표준 — 분기·대기와 결합</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>발송 전 점검 — Preview &amp; Test</h2>
+  <ol class="steps">
+    <li><b>Subscriber Preview</b> — 실제 구독자 데이터를 대입해 개인화 치환 결과를 미리보기. AMPscript 오류·빈 필드 케이스를 발송 전에 검출</li>
+    <li><b>Test Send</b> — 테스트 수신자 목록으로 실제 발송해 렌더링·링크·이미지를 메일함에서 확인</li>
+    <li><b>Approvals(선택)</b> — 승인 워크플로우를 켜면 지정 승인자의 검토 없이는 발송 불가 — 다인 운영 조직의 오발송 방지 장치</li>
+  </ol>
+
+  <h2>A/B 테스트</h2>
+  <ul class="plain">
+    <li><b>동작</b> — 대상의 일부에 A/B 두 버전을 발송하고, 판정 기준 도달 후 <b>남은 대상 전체에 승자 버전을 자동 발송</b></li>
+    <li><b>테스트 가능 요소</b> — 제목, 발신자명, 프리헤더, 콘텐츠(이메일 2종), 발송 시간대</li>
+    <li><b>승자 판정</b> — 오픈율 또는 클릭률 기준, 판정 대기 시간 설정 가능</li>
+  </ul>
+
+  <h2>대상 관리 — List vs Data Extension</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>구분</th><th>List</th><th>Data Extension</th></tr></thead>
+    <tbody>
+      <tr><td><b>구조</b></td><td>구독자 + Profile Attribute (단일 평면)</td><td>관계형 테이블 — 필드·키 자유 설계</td></tr>
+      <tr><td><b>규모</b></td><td>소규모에 적합</td><td>대규모·고빈도 발송에 적합</td></tr>
+      <tr><td><b>가공</b></td><td>필터 수준</td><td>SQL로 자유 가공 — 세그먼트·집계</td></tr>
+      <tr><td><b>실무</b></td><td>레거시·간단 용도</td><td><b>현재 표준</b> — 저니 진입·캠페인 대상 모두 DE 기반</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note"><b class="label">Note</b>발신자 설정(Sender Profile·Send Classification)과 도메인 인증·IP 워밍 등 발송 기반은 <b>발송 인프라</b> 장에서, 수신거부·구독 상태는 <b>구독자 · 수신거부 관리</b> 장에서 다룸.</div>
+</div>
+</div>
+
+<!-- ═══════════ Mobile Studio ═══════════ -->
+<div class="page" id="mobile">
+<div class="content">
+  <h1>Mobile Studio</h1>
+  <p><b>Mobile Studio는 SMS·앱 푸시·메신저 등 모바일 채널의 콘텐츠 제작과 발송을 담당하는 스튜디오</b></p>
+  <p>3개 모듈로 구성되며, 각 채널의 메시지를 단독 발송하거나 Journey Builder 액티비티로 여정 안에서 발송.</p>
+
+  <h2>구성 모듈 3종</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>모듈</th><th>채널</th><th>주요 기능</th></tr></thead>
+    <tbody>
+      <tr><td><b>MobileConnect</b></td><td>SMS · MMS</td><td>문자 생성·발송·수신·추적. 템플릿·드래그앤드롭 편집, 키워드 기반 자동 응답, 예약·트리거 발송</td></tr>
+      <tr><td><b>MobilePush</b></td><td>앱 푸시</td><td>iOS·Android 앱에 SDK를 심어 푸시 발송. 인앱 메시지, 지오펜스·비콘 기반 위치 트리거 지원</td></tr>
+      <tr><td><b>GroupConnect</b></td><td>메신저</td><td>LINE·Facebook Messenger로 메시지·스티커·리치 콘텐츠 발송, 구독 관리</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>MobileConnect 핵심 개념</h2>
+  <ul class="plain">
+    <li><b>Code (발신 번호)</b> — 발송에 쓰는 Short Code / Long Code. 국가별로 발급·등록 절차가 다름</li>
+    <li><b>Keyword</b> — 수신자가 보내는 단어에 반응하는 자동화 (예: 가입 키워드로 옵트인, STOP류 키워드로 수신거부)</li>
+    <li><b>수신 동의</b> — SMS는 명시적 옵트인 채널. 구독 상태가 이메일과 별도로 관리됨</li>
+    <li><b>전화번호 형식</b> — 국가 코드 포함 형식으로 저장 필요 (Locale과 함께 관리) — 형식 불일치가 발송 실패의 흔한 원인</li>
+  </ul>
+
+  <h2>SMS 발송 만들기 — 기본 순서</h2>
+  <ol class="steps">
+    <li><b>발신 준비</b> — 사용할 Code(발신 번호)와 옵트인/옵트아웃 Keyword 확인</li>
+    <li><b>메시지 작성</b> — MobileConnect에서 Outbound 메시지 생성. 개인화 문자열·AMPscript 사용 가능, 길이(분할 발송) 확인</li>
+    <li><b>대상 선택</b> — 전화번호 필드를 가진 Sendable DE 또는 List 지정</li>
+    <li><b>발송 실행</b> — 즉시/예약 발송, 또는 Automation(SMS 액티비티)·Journey(SMS 액티비티)로 자동화</li>
+    <li><b>확인</b> — MobileConnect Tracking에서 발송·수신·응답 현황 확인</li>
+  </ol>
+
+  <h2>MobilePush 상세</h2>
+  <ul class="plain">
+    <li><b>SDK 연동 선행</b> — iOS·Android 앱에 MarketingCloud SDK를 설치하고 앱을 계정에 등록해야 발송 가능 (개발 작업 필요)</li>
+    <li><b>Contact Key 매핑</b> — 앱 로그인 사용자를 Contact Key와 연결해야 "그 고객"에게 개인화 푸시 발송 가능. 미연결 시 익명 기기로만 취급</li>
+    <li><b>메시지 유형</b> — 푸시 알림(잠금화면) · 인앱 메시지(앱 사용 중 노출) · Inbox 메시지(앱 내 보관함)</li>
+    <li><b>위치 트리거</b> — 지오펜스·비콘 진입 시 자동 발송 (매장 근처 방문 알림 등)</li>
+  </ul>
+
+  <h2>Journey Builder 연계</h2>
+  <ul class="plain">
+    <li>저니 캔버스에서 <b>SMS·Push 액티비티</b>로 드래그해 이메일과 같은 여정 안에 배치</li>
+    <li>이메일 미반응 고객에게 SMS로 재접근하는 채널 폴백 시나리오 구성 가능</li>
+  </ul>
+
+  <div class="note"><b class="label">국내 광고 문자 규정 (정보통신망법)</b>광고성 문자는 ① 본문에 <b>(광고)</b> 표기 ② <b>무료 수신거부 번호(080)</b> 안내 ③ <b>야간(21시~다음날 8시) 전송 제한</b>(별도 동의 없으면 금지)을 지켜야 함 — 발송 채널이 MCE든 국내 벤더든 동일하게 적용.</div>
+
+  <div class="warn"><b class="label">Important — 한국 시장</b>카카오 알림톡/친구톡과 국내 SMS 대량 발송은 Mobile Studio 기본 기능으로 제공되지 않음. 국내 메시징 벤더의 <b>커스텀 액티비티</b>를 BU에 설치해 Journey Builder에서 발송하는 방식이 일반적 — 상세는 API &amp; 확장의 "커스텀 액티비티" 참조.</div>
+
+  <p>참고 — 공식 문서: <a href="https://help.salesforce.com/s/articleView?id=mktg.mc_moc_mobileconnect.htm&type=5" target="_blank" rel="noopener">MobileConnect</a> · <a href="https://help.salesforce.com/s/articleView?id=sf.mc_mp_mobilepush.htm" target="_blank" rel="noopener">MobilePush</a> · <a href="https://help.salesforce.com/s/articleView?id=mktg.mc_gc_groupconnect.htm&type=5" target="_blank" rel="noopener">GroupConnect</a></p>
 </div>
 </div>
 
@@ -1342,11 +1678,11 @@ npm install</code></pre></li>
 
 <script>
 (function () {
-  var order = ["intro","data","studios","content","journey","automation","deliver","subscribers","tracking","einstein","crm","api","mcp-intro","mcp-how","pkg-intro","pkg-flow","pkg-data","pkg-ops","pkg-setup","pkg-security"];
+  var order = ["intro","data","studios","deliver","subscribers","einstein","crm","api","mcp-intro","mcp-how","pkg-intro","pkg-flow","pkg-data","pkg-ops","pkg-setup","pkg-security"];
   var titles = {
-    "intro":"MCE 소개","data":"데이터 구조","studios":"스튜디오 & 빌더","content":"콘텐츠 제작 · 개인화",
-    "journey":"Journey Builder","automation":"Automation Studio 심화","deliver":"발송 인프라",
-    "subscribers":"구독자 · 수신거부 관리","tracking":"추적 · 리포팅","einstein":"Einstein AI 기능",
+    "intro":"MCE 소개","data":"데이터 모델","studios":"스튜디오 & 빌더","content":"Content Builder","mobile":"Mobile Studio","email":"Email Studio",
+    "journey":"Journey Builder","automation":"Automation Studio","deliver":"발송 인프라",
+    "subscribers":"구독자 · 수신거부 관리","tracking":"Analytics Builder","einstein":"Einstein AI",
     "crm":"CRM 연동 (MC Connect)","api":"API & 확장",
     "mcp-intro":"MCP 소개","mcp-how":"실시간 개인화 동작 방식",
     "pkg-intro":"패키지 소개","pkg-flow":"캠페인 자동 생성","pkg-ops":"운영 자동화 · 봇","pkg-setup":"설치 & 연결","pkg-data":"데이터 분석","pkg-security":"보안 관리"
@@ -1357,18 +1693,23 @@ npm install</code></pre></li>
     var content = page.querySelector(".content");
     if (!content || content.querySelector(".pager")) return;
     var i = order.indexOf(id);
-    var prev = i > 0 ? order[i-1] : null;
-    var next = i < order.length - 1 ? order[i+1] : null;
     var div = document.createElement("div");
     div.className = "pager";
-    div.innerHTML =
-      (prev ? '<a href="#'+prev+'"><small>이전</small><b>← '+titles[prev]+'</b></a>' : '<a class="spacer"></a>') +
-      (next ? '<a class="next" href="#'+next+'"><small>다음</small><b>'+titles[next]+' →</b></a>' : '<a class="spacer"></a>');
+    if (i < 0) {
+      div.innerHTML = '<a href="#studios"><small>돌아가기</small><b>← 스튜디오 &amp; 빌더</b></a><a class="spacer"></a>';
+    } else {
+      var prev = i > 0 ? order[i-1] : null;
+      var next = i < order.length - 1 ? order[i+1] : null;
+      div.innerHTML =
+        (prev ? '<a href="#'+prev+'"><small>이전</small><b>← '+titles[prev]+'</b></a>' : '<a class="spacer"></a>') +
+        (next ? '<a class="next" href="#'+next+'"><small>다음</small><b>'+titles[next]+' →</b></a>' : '<a class="spacer"></a>');
+    }
     content.appendChild(div);
   }
 
   function show(id) {
-    if (order.indexOf(id) < 0) id = order[0];
+    var el = id ? document.getElementById(id) : null;
+    if (!el || !el.classList.contains("page")) id = order[0];
     document.querySelectorAll(".page").forEach(function (p) {
       p.classList.toggle("active", p.id === id);
       if (p.id === id) ensurePager(p, id);
